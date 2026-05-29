@@ -51,8 +51,8 @@
 .app-container {
   max-width: 430px;
   margin: 0 auto;
-  height: 100dvh;
   height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;

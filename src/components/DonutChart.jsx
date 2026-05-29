@@ -1,7 +1,7 @@
 import React from 'react';
 
 const DonutChart = React.memo(({ valor, total, size = 120, onClick }) => {
-  const radius = 42;
+  const radius = 38;
   const circ = 2 * Math.PI * radius;
   // Clamp 0..1 — never negative, never overflows SVG
   const safeTotal = Math.max(Number(total) || 1, 1);
