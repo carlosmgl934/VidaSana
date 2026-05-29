@@ -14,7 +14,6 @@ const FORM_FIELDS = [
   { k: 'porcAgua',    l: '💧 % Agua corporal',            validKey: 'porcAgua' },
   { k: 'porcMusculo', l: '💪 % Músculo',                  validKey: 'porcMusculo' },
   { k: 'porcHueso',   l: '🦴 % Hueso',                    validKey: 'porcHueso' },
-  { k: 'calorias',    l: '🔥 Calorías del día (opcional)', validKey: 'calorias' },
 ];
 
 const METRIC_LABELS = {

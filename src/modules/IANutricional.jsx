@@ -676,18 +676,33 @@ const IANutricional = () => {
             </div>
           ))}
           {loadingChat && <TypingIndicator />}
-          {/* Input de chat */}
-          <div style={{ display: 'flex', gap: 8, position: 'sticky', bottom: 0, background: '#0f172a', padding: '8px 0', paddingBottom: 'calc(8px + env(safe-area-inset-bottom, 0px))' }}>
-            <input className="input-field" style={{ flex: 1 }}
-              placeholder="Escribe tu pregunta..."
-              value={chatInput}
-              onChange={e => setChatInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendChat()} />
-            <button className="btn-icon"
-              style={{ background: '#10b981', borderColor: '#10b981', color: 'white', fontSize: 18, flexShrink: 0 }}
-              onClick={sendChat} disabled={loadingChat || !chatInput.trim()}>
-              ➤
-            </button>
+          {/* Espaciador para que los mensajes no se queden detrás del input fijo */}
+          <div style={{ height: 60 }} />
+          
+          {/* Input de chat fijo en la parte inferior */}
+          <div style={{
+            position: 'fixed',
+            bottom: 'calc(73px + env(safe-area-inset-bottom, 0px))',
+            left: '50%', transform: 'translateX(-50%)',
+            width: '100%', maxWidth: '430px',
+            background: '#0f172a',
+            padding: '12px 16px',
+            boxSizing: 'border-box',
+            zIndex: 40,
+            borderTop: '1px solid rgba(255,255,255,0.05)'
+          }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input className="input-field" style={{ flex: 1, margin: 0 }}
+                placeholder="Escribe tu pregunta..."
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendChat()} />
+              <button className="btn-icon"
+                style={{ background: '#10b981', borderColor: '#10b981', color: 'white', fontSize: 18, flexShrink: 0, margin: 0 }}
+                onClick={sendChat} disabled={loadingChat || !chatInput.trim()}>
+                ➤
+              </button>
+            </div>
           </div>
         </div>
       )}

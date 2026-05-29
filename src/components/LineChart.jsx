@@ -47,21 +47,30 @@ const LineChart = React.memo(({ data, color = '#10b981', label = 'Peso' }) => {
         </defs>
         <path d={areaPath} fill={`url(#${gradId})`} />
         <path d={path} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-        {data.map((d, i) => (
-          <g key={`${d.fecha}-${i}`}>
-            <circle
-              cx={xs[i]} cy={ys[i]} r="7" fill={color} className="chart-point"
-              onMouseEnter={() => setTooltip({ x: xs[i], y: ys[i], v: d.valor, f: d.fecha })}
-              onMouseLeave={() => setTooltip(null)}
-              onClick={() => setTooltip(t => t?.f === d.fecha ? null : { x: xs[i], y: ys[i], v: d.valor, f: d.fecha })}
-            />
-            {i % labelStep === 0 && (
-              <text x={xs[i]} y={H + 14} textAnchor="middle" fill="#475569" fontSize="9">
-                {formatDate(d.fecha).slice(0, 5)}
-              </text>
-            )}
-          </g>
-        ))}
+        {data.map((d, i) => {
+          const isMinOrMax = (vals[i] === minV || vals[i] === maxV) && n > 2;
+          const showValue = n < 15 || i === 0 || i === n - 1 || isMinOrMax;
+          return (
+            <g key={`${d.fecha}-${i}`}>
+              <circle
+                cx={xs[i]} cy={ys[i]} r="5" fill={color} className="chart-point"
+                onMouseEnter={() => setTooltip({ x: xs[i], y: ys[i], v: d.valor, f: d.fecha })}
+                onMouseLeave={() => setTooltip(null)}
+                onClick={() => setTooltip(t => t?.f === d.fecha ? null : { x: xs[i], y: ys[i], v: d.valor, f: d.fecha })}
+              />
+              {showValue && (
+                <text x={xs[i]} y={ys[i] - 10} textAnchor="middle" fill="#f1f5f9" fontSize="9" fontWeight="700">
+                  {d.valor}
+                </text>
+              )}
+              {i % labelStep === 0 && (
+                <text x={xs[i]} y={H + 14} textAnchor="middle" fill="#475569" fontSize="9">
+                  {formatDate(d.fecha).slice(0, 5)}
+                </text>
+              )}
+            </g>
+          );
+        })}
         {tooltip && (
           <g>
             <rect
