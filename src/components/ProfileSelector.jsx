@@ -5,8 +5,14 @@ const ProfileSelector = () => {
   const { dispatch } = useApp();
   return (
     <div style={{
-      minHeight: '100dvh', display: 'flex', flexDirection: 'column',
-      justifyContent: 'center', alignItems: 'center', padding: 24,
+      minHeight: '100%',
+      overflowY: 'auto',
+      WebkitOverflowScrolling: 'touch',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: '24px 24px calc(24px + env(safe-area-inset-bottom, 0px))',
       background: 'linear-gradient(180deg, #0f172a 0%, #1a1f35 100%)'
     }}>
       <div className="animate-fade-in" style={{ width: '100%', maxWidth: 380 }}>

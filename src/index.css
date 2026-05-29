@@ -6,31 +6,32 @@
     -webkit-tap-highlight-color: transparent;
     -webkit-font-smoothing: antialiased;
   }
-  
-  html, body, #root {
-    height: 100%;
-    overflow: hidden;
-  }
 
   html {
-    /* iOS keyboard: keep active input visible */
-    scroll-padding-bottom: 120px;
+    height: 100%;
+    /* NO overflow:hidden aquí — bloquea iOS touch scroll */
+    overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
+    scroll-padding-bottom: 120px;
   }
 
   body {
+    height: 100%;
+    /* NO overflow:hidden aquí — bloquea iOS touch scroll */
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
     background: #0f172a;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     color: #f1f5f9;
     margin: 0;
     padding: 0;
     overscroll-behavior: none;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
   }
 
-  /* Prevent horizontal scroll on any element */
+  /* Solo #root tiene overflow:hidden para contener la app */
   #root {
+    height: 100%;
+    overflow: hidden;
     overflow-x: hidden;
     max-width: 100vw;
   }
