@@ -6,8 +6,6 @@ const ProfileSelector = () => {
   return (
     <div style={{
       minHeight: '100%',
-      overflowY: 'auto',
-      WebkitOverflowScrolling: 'touch',
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'center',
