@@ -115,12 +115,33 @@ export const callAI = async (
     ]
   };
 
-  const res = await fetch(GEMINI_URL(API_KEY), {
+  let requestUrl = GEMINI_URL(API_KEY);
+  let res = await fetch(requestUrl, {
     method:  'POST',
     signal,                   // AbortController signal
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify(body)
   });
+
+  // Si el modelo no se encuentra, buscar dinámicamente uno que exista en la cuenta
+  if (res.status === 404) {
+    try {
+      const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
+      const modelsData = await modelsRes.json();
+      const validModel = modelsData.models?.find(m => m.supportedGenerationMethods?.includes('generateContent') && m.name.includes('gemini'));
+      if (validModel) {
+        requestUrl = `https://generativelanguage.googleapis.com/v1beta/${validModel.name}:generateContent?key=${API_KEY}`;
+        res = await fetch(requestUrl, {
+          method:  'POST',
+          signal,
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify(body)
+        });
+      }
+    } catch (err) {
+      console.warn('Fallo al buscar modelos alternativos', err);
+    }
+  }
 
   if (!res.ok) {
     // Gemini devuelve errores en { error: { code, message, status } }
