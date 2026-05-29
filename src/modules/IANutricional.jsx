@@ -403,7 +403,13 @@ const IANutricional = () => {
       setManualResult(json);
     } catch (e) {
       if (e.name !== 'AbortError') {
-        setManualResult({ nombre_plato: manualText, calorias: 300, proteina_g: 20, carbohidratos_g: 30, grasas_g: 10, fibra_g: 3, sodio_mg: 300, valoracion: 'aceptable', consejo: 'Estimación aproximada.', alertas: [] });
+        setManualResult({ 
+          nombre_plato: manualText, 
+          calorias: 300, proteina_g: 20, carbohidratos_g: 30, grasas_g: 10, fibra_g: 3, sodio_mg: 300, 
+          valoracion: 'aceptable', 
+          consejo: `Error IA: ${e.message}`, 
+          alertas: [] 
+        });
       }
     }
     setLoadingManual(false);
