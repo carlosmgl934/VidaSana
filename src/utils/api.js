@@ -4,7 +4,7 @@
 // ============================================================
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
-const MODEL   = 'gemini-1.5-flash';
+const MODEL   = 'gemini-pro';
 
 // Endpoint REST de Gemini (browser-safe, sin SDK, sin CORS extra)
 const GEMINI_URL = (key) =>
