@@ -15,6 +15,7 @@
   html {
     /* iOS keyboard: keep active input visible */
     scroll-padding-bottom: 120px;
+    -webkit-overflow-scrolling: touch;
   }
 
   body {
@@ -24,8 +25,8 @@
     margin: 0;
     padding: 0;
     overscroll-behavior: none;
-    /* Prevent horizontal overflow on all screens */
     overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
   }
 
   /* Prevent horizontal scroll on any element */
@@ -63,13 +64,14 @@
 /* Scrollable Content */
 .content-scroll {
   flex: 1;
+  /* CRÍTICO: sin min-height:0, los hijos flex no generan scroll */
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  /* 80px for bottom nav + safe area for iPhone notch/home indicator */
+  /* 80px para el bottom nav + safe area iPhone */
   padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
-  /* iOS keyboard: keep focused input visible */
   scroll-padding-bottom: 160px;
 }
 
@@ -264,8 +266,15 @@
   color: #f1f5f9;
   font-size: 16px;
   width: 100%;
+  /* CRÍTICO: evita que inputs de fecha/hora se desborden en flex */
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
+  /* iOS: appearance para inputs de fecha */
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .input-field:focus {
@@ -274,6 +283,15 @@
 }
 
 .input-field::placeholder { color: #475569; }
+
+/* Inputs de tipo fecha/hora: tamaño contenido */
+input[type="date"].input-field,
+input[type="time"].input-field {
+  /* Evita el overflow en contenedores flex estrechos */
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+}
 
 /* ====== BOTTOM NAV ====== */
 .bottom-nav {

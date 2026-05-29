@@ -171,7 +171,7 @@ const TabCalcular = React.memo(() => {
 
         {/* Dos campos en fila */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <label style={{ fontSize: 11, color: '#64748b', display: 'block', marginBottom: 6 }}>
               Kcal por 100g
             </label>
@@ -179,8 +179,8 @@ const TabCalcular = React.memo(() => {
               placeholder="350" style={{ textAlign: 'center', fontSize: 18, fontWeight: 700 }}
               value={kcalPor100} onChange={e => setKcalPor100(e.target.value)} />
           </div>
-          <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 14, fontSize: 20, color: '#475569' }}>×</div>
-          <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 14, fontSize: 20, color: '#475569', flexShrink: 0 }}>×</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <label style={{ fontSize: 11, color: '#64748b', display: 'block', marginBottom: 6 }}>
               Gramos
             </label>

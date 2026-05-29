@@ -189,12 +189,12 @@ const Calendario = () => {
               {selLog.actividad === 'gym' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <div style={{ flex: 1 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <label style={{ fontSize: 11, color: '#64748b' }}>Entrada</label>
                       <input className="input-field" type="time" style={{ padding: '8px', marginTop: 4 }}
                         value={selLog.gymEntrada || ''} onChange={e => updateSelLog({ gymEntrada: e.target.value })} />
                     </div>
-                    <div style={{ flex: 1 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <label style={{ fontSize: 11, color: '#64748b' }}>Salida</label>
                       <input className="input-field" type="time" style={{ padding: '8px', marginTop: 4 }}
                         value={selLog.gymSalida || ''} onChange={e => updateSelLog({ gymSalida: e.target.value })} />
@@ -229,12 +229,12 @@ const Calendario = () => {
               </div>
               {selLog.actividad === 'paseo' && (
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <div style={{ flex: 1 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <label style={{ fontSize: 11, color: '#64748b' }}>Minutos</label>
                     <input className="input-field" type="number" style={{ padding: '8px', marginTop: 4 }}
                       value={selLog.paseoDuracion || ''} onChange={e => updateSelLog({ paseoDuracion: Number(e.target.value) })} />
                   </div>
-                  <div style={{ flex: 1 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <label style={{ fontSize: 11, color: '#64748b' }}>Km</label>
                     <input className="input-field" type="number" style={{ padding: '8px', marginTop: 4 }}
                       value={selLog.paseoDistancia || ''} onChange={e => updateSelLog({ paseoDistancia: Number(e.target.value) })} />
@@ -337,7 +337,7 @@ const Calendario = () => {
                   const pasosDay = state.pasos?.[state.perfil]?.[selectedDay] || {};
                   return (
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <div style={{ flex: 1 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
                         <label style={{ fontSize: 11, color: '#64748b' }}>Pasos</label>
                         <input className="input-field" type="number" style={{ padding: '8px', marginTop: 4 }}
                           placeholder="8500"
@@ -351,7 +351,7 @@ const Calendario = () => {
                             dispatch({ type: 'UPDATE_PASOS', payload: { fecha: selectedDay, data: { pasos: v, km, minutos: pasosDay.minutos || 0, calorias: cal } } });
                           }} />
                       </div>
-                      <div style={{ flex: 1 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
                         <label style={{ fontSize: 11, color: '#64748b' }}>Km</label>
                         <input className="input-field" type="number" style={{ padding: '8px', marginTop: 4 }}
                           value={pasosDay.km || ''} readOnly

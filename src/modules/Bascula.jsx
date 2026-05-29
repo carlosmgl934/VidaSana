@@ -257,13 +257,13 @@ Analiza de forma personalizada y motivadora.`;
       <Modal open={showModal} onClose={() => setShowModal(false)} title="Nueva Medición">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{ flex: 1 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <label style={{ fontSize: 12, color: '#64748b', display: 'block', marginBottom: 6 }}>Fecha</label>
               <input className="input-field" type="date" value={form.fecha}
                 onChange={e => updf('fecha', e.target.value)}
                 max={today()} />
             </div>
-            <div style={{ flex: 1 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <label style={{ fontSize: 12, color: '#64748b', display: 'block', marginBottom: 6 }}>Hora</label>
               <input className="input-field" type="time" value={form.hora}
                 onChange={e => updf('hora', e.target.value)} />
