@@ -12,6 +12,11 @@
     overflow: hidden;
   }
 
+  html {
+    /* iOS keyboard: keep active input visible */
+    scroll-padding-bottom: 120px;
+  }
+
   body {
     background: #0f172a;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -19,6 +24,25 @@
     margin: 0;
     padding: 0;
     overscroll-behavior: none;
+    /* Prevent horizontal overflow on all screens */
+    overflow-x: hidden;
+  }
+
+  /* Prevent horizontal scroll on any element */
+  #root {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  /* iOS: prevent auto-zoom on input focus — min 16px */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+
+  /* Touch: all interactive elements get manipulation */
+  button, a, input, select, textarea, [role="button"], .nav-item, .cal-day, .glass-icon, .star, .tag-chip, .profile-card, .tab-item {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
@@ -31,6 +55,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  overflow-x: hidden;
   position: relative;
   background: #0f172a;
 }
@@ -42,7 +67,10 @@
   overflow-x: hidden;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  /* 80px for bottom nav + safe area for iPhone notch/home indicator */
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  /* iOS keyboard: keep focused input visible */
+  scroll-padding-bottom: 160px;
 }
 
 .content-scroll::-webkit-scrollbar {
@@ -172,6 +200,9 @@
   letter-spacing: 0.02em;
   position: relative;
   overflow: hidden;
+  /* Touch: min 44px tap target */
+  min-height: 44px;
+  touch-action: manipulation;
 }
 
 .btn-primary:active {
@@ -198,6 +229,9 @@
   cursor: pointer;
   transition: all 0.15s;
   width: 100%;
+  /* Touch: min 44px tap target */
+  min-height: 44px;
+  touch-action: manipulation;
 }
 
 .btn-secondary:active { transform: scale(0.97); }
@@ -213,6 +247,10 @@
   align-items: center;
   justify-content: center;
   font-size: 20px;
+  /* Touch: min 44x44px tap target */
+  min-width: 44px;
+  min-height: 44px;
+  touch-action: manipulation;
 }
 
 .btn-icon:active { transform: scale(0.9); }
@@ -241,9 +279,14 @@
 .bottom-nav {
   background: rgba(15, 23, 42, 0.95);
   backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid rgba(255,255,255,0.06);
   display: flex;
+  /* Safe area for iPhone notch/home indicator */
   padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px));
+  flex-shrink: 0;
+  position: relative;
+  z-index: 50;
 }
 
 .nav-item {
@@ -252,12 +295,15 @@
   flex-direction: column;
   align-items: center;
   gap: 3px;
-  padding: 6px 4px;
+  /* Min 44px height for iOS/Android touch standard */
+  padding: 8px 4px;
+  min-height: 44px;
   cursor: pointer;
   transition: all 0.2s;
   border: none;
   background: transparent;
   position: relative;
+  touch-action: manipulation;
 }
 
 .nav-item .nav-icon { font-size: 22px; transition: transform 0.2s; }
@@ -304,6 +350,7 @@
   inset: 0;
   background: rgba(0,0,0,0.7);
   backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   z-index: 100;
   display: flex;
   align-items: flex-end;
@@ -316,10 +363,19 @@
   border-radius: 24px 24px 0 0;
   width: 100%;
   max-width: 430px;
+  /* Scrollable modals: max 90vh with internal scroll */
   max-height: 90vh;
+  max-height: 90dvh;
   overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   padding: 24px;
+  /* Safe area padding at bottom for iPhone */
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
   animation: slideInUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  /* iOS keyboard: keep save button visible */
+  scroll-padding-bottom: 80px;
 }
 
 .modal-content::-webkit-scrollbar { display: none; }
@@ -379,6 +435,12 @@
   cursor: pointer;
   transition: all 0.2s;
   text-align: center;
+  /* Touch: min 44px height */
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
 }
 
 .tab-item.active {
@@ -420,8 +482,9 @@
 
 /* ====== STEPPER ====== */
 .stepper-btn {
-  width: 36px;
-  height: 36px;
+  /* Touch: min 44x44px tap target */
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 1px solid #334155;
   background: #0f172a;
@@ -432,6 +495,7 @@
   align-items: center;
   justify-content: center;
   transition: all 0.15s;
+  touch-action: manipulation;
 }
 
 .stepper-btn:active { transform: scale(0.85); }
@@ -500,6 +564,10 @@
   transition: all 0.15s;
   position: relative;
   padding: 4px;
+  /* Touch: minimum tap area */
+  min-width: 36px;
+  min-height: 36px;
+  touch-action: manipulation;
 }
 
 .cal-day:active { transform: scale(0.9); }
@@ -510,6 +578,7 @@
 .graph-container {
   position: relative;
   overflow: hidden;
+  overflow-x: auto;
   border-radius: 12px;
 }
 
@@ -519,6 +588,13 @@
   cursor: pointer;
   transition: transform 0.1s;
   filter: grayscale(100%);
+  /* Touch: min 44x44 tap area */
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
 }
 
 .star.active {
@@ -593,6 +669,10 @@
 .chart-point {
   cursor: pointer;
   transition: r 0.2s;
+  /* Touch: larger hit area for touch on SVG points */
+  stroke: transparent;
+  stroke-width: 15;
+  paint-order: stroke;
 }
 
 /* ====== MILESTONE CELEBRATION ====== */
@@ -628,7 +708,9 @@
 .tag-chip {
   display: inline-flex;
   align-items: center;
-  padding: 6px 12px;
+  /* Touch: min 44px height */
+  padding: 10px 14px;
+  min-height: 44px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 500;
@@ -637,6 +719,7 @@
   border: 1px solid #334155;
   background: transparent;
   color: #64748b;
+  touch-action: manipulation;
 }
 
 .tag-chip.selected {
@@ -681,6 +764,13 @@
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   filter: grayscale(100%) opacity(0.3);
+  /* Touch: min 44x44 tap area */
+  min-width: 36px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
 }
 
 .glass-icon.filled {
@@ -739,7 +829,7 @@
 
 .pasos-input-group .input-field {
   padding: 10px 12px;
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .pasos-calc-hint {
@@ -747,4 +837,25 @@
   color: #475569;
   font-style: italic;
   margin-top: 2px;
+}
+
+/* ====== MOBILE RESPONSIVE HELPERS ====== */
+
+/* Numbers that might overflow on small screens */
+@media (max-width: 360px) {
+  .text-shrink-sm {
+    font-size: 0.85em;
+    word-break: break-word;
+  }
+}
+
+/* SVG responsive containers */
+svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Prevent any horizontal scrollbar globally */
+.app-container, .content-scroll, .modal-content {
+  overflow-x: hidden;
 }

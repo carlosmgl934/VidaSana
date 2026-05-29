@@ -16,7 +16,7 @@ const DonutChart = React.memo(({ valor, total, size = 120, onClick }) => {
       height={size}
       viewBox="0 0 100 100"
       className="donut-svg"
-      style={{ cursor: onClick ? 'pointer' : 'default', flexShrink: 0 }}
+      style={{ cursor: onClick ? 'pointer' : 'default', flexShrink: 0, maxWidth: '100%' }}
       onClick={onClick}
       aria-label={`${Math.round(pct * 100)}% del objetivo calórico`}
       role={onClick ? 'button' : 'img'}

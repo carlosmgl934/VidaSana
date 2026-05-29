@@ -677,7 +677,7 @@ const IANutricional = () => {
           ))}
           {loadingChat && <TypingIndicator />}
           {/* Input de chat */}
-          <div style={{ display: 'flex', gap: 8, position: 'sticky', bottom: 0, background: '#0f172a', padding: '8px 0' }}>
+          <div style={{ display: 'flex', gap: 8, position: 'sticky', bottom: 0, background: '#0f172a', padding: '8px 0', paddingBottom: 'calc(8px + env(safe-area-inset-bottom, 0px))' }}>
             <input className="input-field" style={{ flex: 1 }}
               placeholder="Escribe tu pregunta..."
               value={chatInput}

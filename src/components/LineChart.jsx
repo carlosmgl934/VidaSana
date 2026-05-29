@@ -37,8 +37,8 @@ const LineChart = React.memo(({ data, color = '#10b981', label = 'Peso' }) => {
   const labelStep = Math.max(1, Math.ceil(n / 4));
 
   return (
-    <div style={{ overflowX: 'auto' }}>
-      <svg width={W} height={H + 20} viewBox={`0 0 ${W} ${H + 20}`} aria-label="Gráfica de evolución">
+    <div style={{ width: '100%', overflowX: 'hidden' }}>
+      <svg width="100%" height={H + 20} viewBox={`0 0 ${W} ${H + 20}`} preserveAspectRatio="xMidYMid meet" aria-label="Gráfica de evolución">
         <defs>
           <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={color} stopOpacity="0.3" />
@@ -50,7 +50,7 @@ const LineChart = React.memo(({ data, color = '#10b981', label = 'Peso' }) => {
         {data.map((d, i) => (
           <g key={`${d.fecha}-${i}`}>
             <circle
-              cx={xs[i]} cy={ys[i]} r="5" fill={color} className="chart-point"
+              cx={xs[i]} cy={ys[i]} r="7" fill={color} className="chart-point"
               onMouseEnter={() => setTooltip({ x: xs[i], y: ys[i], v: d.valor, f: d.fecha })}
               onMouseLeave={() => setTooltip(null)}
               onClick={() => setTooltip(t => t?.f === d.fecha ? null : { x: xs[i], y: ys[i], v: d.valor, f: d.fecha })}

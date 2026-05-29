@@ -98,8 +98,8 @@ const Calendario = () => {
   }, [state.dayLogs, state.perfil, state.pasos]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+      <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 12, flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
         {/* Resumen semanal */}
         <div className="card">
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>📊 Esta semana</div>

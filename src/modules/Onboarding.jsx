@@ -197,7 +197,9 @@ Máximo 280 palabras. Usa saltos de línea entre secciones.`;
   return (
     <div style={{
       minHeight: '100dvh', display: 'flex', flexDirection: 'column', padding: 24,
-      background: 'linear-gradient(180deg, #0f172a 0%, #1a1f35 100%)'
+      background: 'linear-gradient(180deg, #0f172a 0%, #1a1f35 100%)',
+      overflowY: 'auto', WebkitOverflowScrolling: 'touch',
+      paddingBottom: 'calc(24px + env(safe-area-inset-bottom, 0px))'
     }}>
       {/* ── Botón de retroceso arriba ── */}
       <div style={{ marginBottom: 8, minHeight: 28 }}>

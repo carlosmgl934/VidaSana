@@ -300,7 +300,7 @@ const Dashboard = () => {
         ) : (
           <div className="card">
             <div style={{ fontSize: 13, color: '#64748b', marginBottom: 8 }}>🍽️ Cena hoy</div>
-            <div style={{ fontSize: 12, color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: 12, color: '#94a3b8', wordBreak: 'break-word' }}>
               {planHoy?.cena ? planHoy.cena.nombre : 'Sin planificar'}
             </div>
           </div>
@@ -363,7 +363,7 @@ const Dashboard = () => {
       {!isMama && planHoy?.cena && (
         <div className="card" style={{ background: 'linear-gradient(135deg,rgba(99,102,241,0.1),rgba(16,185,129,0.05))', border: '1px solid rgba(99,102,241,0.2)' }}>
           <div style={{ fontSize: 12, color: '#6366f1', fontWeight: 600, marginBottom: 4 }}>🍽️ Cena de hoy</div>
-          <div style={{ fontSize: 16, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div style={{ fontSize: 16, fontWeight: 700, wordBreak: 'break-word' }}>
             {planHoy.cena.nombre}
           </div>
           {planHoy.cena.calorias && (

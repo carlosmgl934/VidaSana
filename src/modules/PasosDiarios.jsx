@@ -39,7 +39,7 @@ const BarChart7 = React.memo(({ days, objetivo }) => {
   const WEEKDAY = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
   return (
-    <svg width={W} height={H + 24} viewBox={`0 0 ${W} ${H + 24}`} aria-label="Gráfica semanal de pasos">
+    <svg width="100%" height={H + 24} viewBox={`0 0 ${W} ${H + 24}`} preserveAspectRatio="xMidYMid meet" aria-label="Gráfica semanal de pasos">
       {/* Línea de objetivo */}
       <line x1={padX} y1={goalY} x2={W - padX} y2={goalY} className="pasos-goal-line" />
       <text x={W - padX - 2} y={goalY - 4} textAnchor="end" fill="#f59e0b" fontSize="9" fontWeight="600">
