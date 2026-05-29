@@ -228,17 +228,11 @@ const Calendario = () => {
                   onChange={v => updateSelLog({ actividad: v ? 'paseo' : 'descanso' })} />
               </div>
               {selLog.actividad === 'paseo' && (
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <label style={{ fontSize: 11, color: '#64748b' }}>Minutos</label>
-                    <input className="input-field" type="number" style={{ padding: '8px', marginTop: 4 }}
-                      value={selLog.paseoDuracion || ''} onChange={e => updateSelLog({ paseoDuracion: Number(e.target.value) })} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <label style={{ fontSize: 11, color: '#64748b' }}>Km</label>
-                    <input className="input-field" type="number" style={{ padding: '8px', marginTop: 4 }}
-                      value={selLog.paseoDistancia || ''} onChange={e => updateSelLog({ paseoDistancia: Number(e.target.value) })} />
-                  </div>
+                <div style={{ marginTop: 8 }}>
+                  <label style={{ fontSize: 11, color: '#64748b' }}>Km recorridos</label>
+                  <input className="input-field" type="number" style={{ padding: '8px', marginTop: 4, width: '100%' }}
+                    placeholder="Ej. 4.5"
+                    value={selLog.paseoDistancia || ''} onChange={e => updateSelLog({ paseoDistancia: Number(e.target.value) })} />
                 </div>
               )}
             </div>
@@ -329,39 +323,7 @@ const Calendario = () => {
               </div>
             </div>
 
-            {/* Pasos — solo Yo, sincronizado con módulo PasosDiarios */}
-            {!isMama && (
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ fontWeight: 600, marginBottom: 8 }}>👟 Pasos del día</div>
-                {(() => {
-                  const pasosDay = state.pasos?.[state.perfil]?.[selectedDay] || {};
-                  return (
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <label style={{ fontSize: 11, color: '#64748b' }}>Pasos</label>
-                        <input className="input-field" type="number" style={{ padding: '8px', marginTop: 4 }}
-                          placeholder="8500"
-                          value={pasosDay.pasos || ''}
-                          onChange={e => {
-                            const v = Number(e.target.value) || 0;
-                            const z = state.profiles[state.perfil]?.longitudZancada || 75;
-                            const w = Number(state.profiles[state.perfil]?.peso) || 70;
-                            const km = +(v * z / 100000).toFixed(1);
-                            const cal = Math.round(v * 0.04 * (w / 70));
-                            dispatch({ type: 'UPDATE_PASOS', payload: { fecha: selectedDay, data: { pasos: v, km, minutos: pasosDay.minutos || 0, calorias: cal } } });
-                          }} />
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <label style={{ fontSize: 11, color: '#64748b' }}>Km</label>
-                        <input className="input-field" type="number" style={{ padding: '8px', marginTop: 4 }}
-                          value={pasosDay.km || ''} readOnly
-                          tabIndex={-1} />
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-            )}
+
 
             {/* Nota */}
             <div>
