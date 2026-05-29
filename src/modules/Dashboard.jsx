@@ -168,29 +168,38 @@ const Dashboard = () => {
       </div>
 
       {/* Calorías donut */}
-      <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-        <DonutChart valor={calHoy} total={calObjetivo}
-          onClick={() => dispatch({ type: 'SET_TAB', payload: 'ia' })} />
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Calorías de hoy</div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-            <div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: calHoy <= calObjetivo ? '#10b981' : '#ef4444' }}>{calHoy}</div>
-              <div style={{ fontSize: 11, color: '#64748b' }}>consumidas</div>
+      {!isMama ? (
+        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+          <DonutChart valor={calHoy} total={calObjetivo}
+            onClick={() => dispatch({ type: 'SET_TAB', payload: 'ia' })} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Calorías de hoy</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+              <div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: calHoy <= calObjetivo ? '#10b981' : '#ef4444' }}>{calHoy}</div>
+                <div style={{ fontSize: 11, color: '#64748b' }}>consumidas</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 24, fontWeight: 800, color: '#6366f1' }}>{calObjetivo}</div>
+                <div style={{ fontSize: 11, color: '#64748b' }}>objetivo</div>
+              </div>
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 24, fontWeight: 800, color: '#6366f1' }}>{calObjetivo}</div>
-              <div style={{ fontSize: 11, color: '#64748b' }}>objetivo</div>
-            </div>
+            <ProgressBar value={calHoy} max={calObjetivo} h={6}
+              color={calHoy <= calObjetivo * 0.8
+                ? 'linear-gradient(90deg,#10b981,#34d399)'
+                : calHoy <= calObjetivo
+                  ? 'linear-gradient(90deg,#f59e0b,#fbbf24)'
+                  : 'linear-gradient(90deg,#ef4444,#f87171)'} />
           </div>
-          <ProgressBar value={calHoy} max={calObjetivo} h={6}
-            color={calHoy <= calObjetivo * 0.8
-              ? 'linear-gradient(90deg,#10b981,#34d399)'
-              : calHoy <= calObjetivo
-                ? 'linear-gradient(90deg,#f59e0b,#fbbf24)'
-                : 'linear-gradient(90deg,#ef4444,#f87171)'} />
         </div>
-      </div>
+      ) : (
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: '#94a3b8' }}>🔥 Calorías objetivo diario</div>
+          <div style={{ fontSize: 36, fontWeight: 800, color: '#10b981' }}>
+            {calObjetivo} <span style={{ fontSize: 16, fontWeight: 400, color: '#64748b' }}>kcal</span>
+          </div>
+        </div>
+      )}
 
       {/* Tarjetas rápidas */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -243,37 +252,56 @@ const Dashboard = () => {
             </div>
           );
         })()}
+        
+        {/* Días para el objetivo (solo Mamá) */}
+        {isMama && (() => {
+          const dias = prof.fechaMeta ? Math.max(0, Math.ceil((new Date(prof.fechaMeta) - new Date()) / 86400000)) : 0;
+          return (
+            <div className="card" style={{ background: 'linear-gradient(135deg,rgba(99,102,241,0.08),rgba(16,185,129,0.04))', border: '1px solid rgba(99,102,241,0.2)' }}>
+              <div style={{ fontSize: 13, color: '#6366f1', marginBottom: 8, fontWeight: 600 }}>🎯 Para tu objetivo</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                <div style={{ fontSize: 32, fontWeight: 800, color: '#6366f1' }}>{dias}</div>
+                <div style={{ fontSize: 14, color: '#64748b', fontWeight: 600 }}>días</div>
+              </div>
+              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                Mantén el ritmo, ¡tú puedes!
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Actividad */}
-        <div className="card">
-          <div style={{ fontSize: 13, color: '#64748b', marginBottom: 8 }}>🏃 Actividad</div>
-          <div style={{ fontSize: 22, marginBottom: 8 }}>
-            {dayLog.actividad === 'gym' ? '🏋️' : dayLog.actividad === 'paseo' ? '🚶' : '😴'}
-          </div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: dayLog.actividad === 'descanso' ? '#475569' : '#10b981' }}>
-            {dayLog.actividad === 'gym' ? 'Gym hoy ✓' : dayLog.actividad === 'paseo' ? 'Paseo ✓' : 'Descanso'}
-          </div>
-          {!isMama && (
+        {!isMama && (
+          <div className="card">
+            <div style={{ fontSize: 13, color: '#64748b', marginBottom: 8 }}>🏃 Actividad</div>
+            <div style={{ fontSize: 22, marginBottom: 8 }}>
+              {dayLog.actividad === 'gym' ? '🏋️' : dayLog.actividad === 'paseo' ? '🚶' : '😴'}
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: dayLog.actividad === 'descanso' ? '#475569' : '#10b981' }}>
+              {dayLog.actividad === 'gym' ? 'Gym hoy ✓' : dayLog.actividad === 'paseo' ? 'Paseo ✓' : 'Descanso'}
+            </div>
             <button style={{ marginTop: 8, fontSize: 11, color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
               onClick={() => dispatch({ type: 'SET_TAB', payload: 'calendario' })}>
               Registrar →
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Dieta */}
-        <div className="card">
-          <div style={{ fontSize: 13, color: '#64748b', marginBottom: 8 }}>🥗 Dieta hoy</div>
-          <div style={{ fontSize: 28 }}>
-            {dayLog.dieta === 'completa' ? '✅' : dayLog.dieta === 'parcial' ? '⚠️' : dayLog.dieta === 'rota' ? '❌' : '⬜'}
+        {!isMama && (
+          <div className="card">
+            <div style={{ fontSize: 13, color: '#64748b', marginBottom: 8 }}>🥗 Dieta hoy</div>
+            <div style={{ fontSize: 28 }}>
+              {dayLog.dieta === 'completa' ? '✅' : dayLog.dieta === 'parcial' ? '⚠️' : dayLog.dieta === 'rota' ? '❌' : '⬜'}
+            </div>
+            <div style={{ fontSize: 12, marginTop: 4, color: '#94a3b8' }}>
+              {dayLog.dieta === 'completa' ? 'Respetada' : dayLog.dieta === 'parcial' ? 'Parcial' : dayLog.dieta === 'rota' ? 'Rota' : 'Sin registrar'}
+            </div>
           </div>
-          <div style={{ fontSize: 12, marginTop: 4, color: '#94a3b8' }}>
-            {dayLog.dieta === 'completa' ? 'Respetada' : dayLog.dieta === 'parcial' ? 'Parcial' : dayLog.dieta === 'rota' ? 'Rota' : 'Sin registrar'}
-          </div>
-        </div>
+        )}
 
-        {/* Suplementos (Yo) / Cena planificada (Mamá) */}
-        {!isMama ? (
+        {/* Suplementos (Yo) */}
+        {!isMama && (
           <div className="card">
             <div style={{ fontSize: 13, color: '#64748b', marginBottom: 8 }}>💊 Suplementos</div>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -295,13 +323,6 @@ const Dashboard = () => {
                 }}>
                 ⚡ {dayLog.creatinaTomada ? '✓' : ''}
               </button>
-            </div>
-          </div>
-        ) : (
-          <div className="card">
-            <div style={{ fontSize: 13, color: '#64748b', marginBottom: 8 }}>🍽️ Cena hoy</div>
-            <div style={{ fontSize: 12, color: '#94a3b8', wordBreak: 'break-word' }}>
-              {planHoy?.cena ? planHoy.cena.nombre : 'Sin planificar'}
             </div>
           </div>
         )}

@@ -37,6 +37,17 @@ export const reducer = (state, action) => {
       return { ...state, mediciones: { ...state.mediciones, [prof]: newList } };
     }
 
+    case 'DELETE_MEDICION': {
+      const prof = state.perfil;
+      return {
+        ...state,
+        mediciones: {
+          ...state.mediciones,
+          [prof]: state.mediciones[prof].filter(m => (m.id || m.fecha + m.hora) !== action.payload)
+        }
+      };
+    }
+
     case 'UPDATE_DAY_LOG': {
       const prof = state.perfil;
       const d = action.payload.fecha || today();

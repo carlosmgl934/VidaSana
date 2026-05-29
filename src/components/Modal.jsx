@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 const Modal = React.memo(({ open, onClose, children, title }) => {
   useEffect(() => {
@@ -8,7 +9,8 @@ const Modal = React.memo(({ open, onClose, children, title }) => {
   }, [open]);
 
   if (!open) return null;
-  return (
+
+  return createPortal(
     <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true">
       <div className="modal-content" onClick={e => e.stopPropagation()}>
         {title && (
@@ -19,7 +21,8 @@ const Modal = React.memo(({ open, onClose, children, title }) => {
         )}
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 });
 Modal.displayName = 'Modal';

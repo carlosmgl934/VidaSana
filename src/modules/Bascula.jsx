@@ -76,7 +76,7 @@ const Bascula = () => {
   const handleSave = useCallback(async () => {
     if (!canSave || loadingAi) return;
     const nueva = {
-      id: Date.now(),
+      id: Date.now().toString(),
       fecha: form.fecha,
       hora: form.hora,
       peso: Number(form.peso),
@@ -212,10 +212,19 @@ Analiza de forma personalizada y motivadora.`;
             const prev = mediciones[i + 1];
             const delta = prev ? +(m.peso - prev.peso).toFixed(1) : null;
             return (
-              <div key={m.id} className="card animate-fade-in">
+              <div key={m.id || m.fecha+m.hora} className="card animate-fade-in">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <div style={{ fontSize: 11, color: '#64748b' }}>{formatDate(m.fecha)}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ fontSize: 11, color: '#64748b' }}>{formatDate(m.fecha)}</div>
+                      <button onClick={() => {
+                        if (confirm('¿Borrar esta medición?')) {
+                          dispatch({ type: 'DELETE_MEDICION', payload: m.id || m.fecha + m.hora });
+                        }
+                      }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px 4px', fontSize: 12 }} aria-label="Borrar">
+                        🗑️
+                      </button>
+                    </div>
                     <div style={{ fontSize: 28, fontWeight: 800, marginTop: 2 }}>
                       {m.peso} <span style={{ fontSize: 14, color: '#64748b', fontWeight: 400 }}>kg</span>
                     </div>
