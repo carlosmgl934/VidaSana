@@ -76,6 +76,21 @@ export const reducer = (state, action) => {
       };
     }
 
+    case 'DELETE_COMIDA': {
+      const prof = state.perfil;
+      const d = today();
+      if (!state.dayLogs[prof][d]) return state;
+      const existing = state.dayLogs[prof][d];
+      const newComidas = existing.comidas.filter(c => (c.id || c.hora + c.nombre) !== action.payload);
+      return {
+        ...state,
+        dayLogs: {
+          ...state.dayLogs,
+          [prof]: { ...state.dayLogs[prof], [d]: { ...existing, comidas: newComidas } }
+        }
+      };
+    }
+
     case 'ADD_CENA':
       return { ...state, cenas: [...state.cenas, action.payload] };
 

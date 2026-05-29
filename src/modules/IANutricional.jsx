@@ -424,7 +424,8 @@ const IANutricional = () => {
         proteina: result.proteina_g,
         carbos: result.carbohidratos_g,
         grasa: result.grasas_g,
-        hora: new Date().toTimeString().slice(0, 5)
+        hora: new Date().toTimeString().slice(0, 5),
+        id: Date.now().toString()
       }
     });
     // Feedback no-bloqueante
@@ -634,7 +635,13 @@ const IANutricional = () => {
                     <div style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.nombre}</div>
                     <div style={{ fontSize: 11, color: '#64748b' }}>{c.hora}</div>
                   </div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: '#10b981', flexShrink: 0 }}>{c.calorias} kcal</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: '#10b981' }}>{c.calorias} kcal</div>
+                    <button className="btn-icon" style={{ padding: 6, fontSize: 14, color: '#ef4444', background: 'rgba(239,68,68,0.1)' }}
+                      onClick={() => dispatch({ type: 'DELETE_COMIDA', payload: c.id || c.hora + c.nombre })}>
+                      🗑️
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
