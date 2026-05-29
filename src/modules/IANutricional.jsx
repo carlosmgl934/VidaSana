@@ -469,7 +469,7 @@ const IANutricional = () => {
       dispatch({ type: 'ADD_MAMA_CHAT', payload: { rol: 'ia', texto: resp } });
     } catch (e) {
       if (e.name !== 'AbortError') {
-        dispatch({ type: 'ADD_MAMA_CHAT', payload: { rol: 'ia', texto: e.message?.includes('Demasiadas') ? e.message : '¡Hola! Ahora mismo no puedo conectarme, pero estás haciendo un trabajo increíble 💕' } });
+        dispatch({ type: 'ADD_MAMA_CHAT', payload: { rol: 'ia', texto: `Error: ${e.message || 'Error desconocido'}` } });
       }
     }
     setLoadingChat(false);
