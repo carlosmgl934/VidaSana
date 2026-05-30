@@ -157,19 +157,48 @@ export const callAI = callAIGemini;
 
 /**
  * Parsea JSON de una respuesta de IA de forma segura.
- * Compatible con respuestas que añaden markdown ```json...```
+ * Estrategias en orden:
+ *  1. Parse directo (Gemini obedeció y devolvió solo JSON)
+ *  2. Extracción de bloque markdown ```json ... ```
+ *  3. Brace-counting: encuentra el objeto JSON aunque haya texto antes/después
+ *     (resistente a respuestas como "Esta ensalada es baja en calorías. {...}")
  */
 export const parseAIJson = (text, fallback = {}) => {
-  try {
-    const mdMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (mdMatch) return JSON.parse(mdMatch[1].trim());
-    const objMatch = text.match(/\{[\s\S]*\}/);
-    if (!objMatch) throw new Error('Sin JSON en respuesta');
-    return JSON.parse(objMatch[0]);
-  } catch (e) {
-    console.warn('[VidaSana] JSON de IA malformado:', e.message);
-    return fallback;
+  if (!text || typeof text !== 'string') return fallback;
+
+  // 1 — Intento directo
+  try { return JSON.parse(text.trim()); } catch {}
+
+  // 2 — Bloque markdown
+  const mdMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (mdMatch) {
+    try { return JSON.parse(mdMatch[1].trim()); } catch {}
   }
+
+  // 3 — Brace-counting: busca el primer { y encuentra el } de cierre correcto
+  //     (no se confunde con } dentro de strings ni con llaves anidadas)
+  const start = text.indexOf('{');
+  if (start !== -1) {
+    let depth = 0, inString = false, escaped = false;
+    for (let i = start; i < text.length; i++) {
+      const ch = text[i];
+      if (escaped)              { escaped = false; continue; }
+      if (ch === '\\' && inString) { escaped = true;  continue; }
+      if (ch === '"')           { inString = !inString; continue; }
+      if (inString)             continue;
+      if (ch === '{')           depth++;
+      else if (ch === '}') {
+        depth--;
+        if (depth === 0) {
+          try { return JSON.parse(text.slice(start, i + 1)); } catch {}
+          break; // JSON malformado aunque encontramos el cierre
+        }
+      }
+    }
+  }
+
+  console.warn('[VidaSana] parseAIJson falló. Primeros 300 chars de respuesta:', text?.slice(0, 300));
+  return fallback;
 };
 
 /**

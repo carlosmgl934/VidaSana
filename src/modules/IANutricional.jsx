@@ -577,8 +577,8 @@ EJEMPLO 5 — Pizza margarita individual:
   - SOLO devuelves JSON válido, sin texto adicional, sin bloques markdown`;
 
     const msg = `Analiza esta imagen de comida aplicando los 6 pasos obligatorios.
-Devuelve ÚNICAMENTE este JSON (sin texto extra, sin backticks, sin markdown):
-{"nombre_plato":"nombre específico del plato real","descripcion":"lista detallada: ingrediente (Xg) → Ykcal/100g → Zkcal total","proceso_calculo":"resumen matemático paso 4 con cada multiplicación","calorias":number,"proteina_g":number,"carbohidratos_g":number,"grasas_g":number,"fibra_g":number,"sodio_mg":number,"aceite_incluido":true|false,"confianza_estimacion":"alta|media|baja","indice_saciedad":"bajo|medio|alto","valoracion":"excelente|bueno|aceptable|mejorable|malo","valoracion_para_objetivo":"ideal|correcto|pasado|muy_pasado","calorias_restantes_despues":number,"consejo":"consejo específico para este plato y para el objetivo de ${nombre}","que_comer_despues":"sugerencia concreta de próxima comida para completar macros del día","alertas":["string"],"alternativas_saludables":["string"]}`;
+Tu respuesta debe empezar DIRECTAMENTE con { y terminar con } — sin texto antes ni después, sin markdown.
+{"nombre_plato":"nombre específico del plato real","descripcion":"lista: ingrediente (Xg) → Ykcal/100g → Zkcal","proceso_calculo":"cálculo matemático completo","calorias":number,"proteina_g":number,"carbohidratos_g":number,"grasas_g":number,"fibra_g":number,"sodio_mg":number,"aceite_incluido":true|false,"confianza_estimacion":"alta|media|baja","indice_saciedad":"bajo|medio|alto","valoracion":"excelente|bueno|aceptable|mejorable|malo","valoracion_para_objetivo":"ideal|correcto|pasado|muy_pasado","calorias_restantes_despues":number,"consejo":"consejo para ${nombre}","que_comer_despues":"sugerencia próxima comida","alertas":["string"],"alternativas_saludables":["string"]}`;
 
     try {
       const text = await callAI(sys, msg, imageBase64, imageMediaType, abortRef.current.signal, { temperature: 0.1, topP: 0.8 });
@@ -617,47 +617,94 @@ Devuelve ÚNICAMENTE este JSON (sin texto extra, sin backticks, sin markdown):
     setManualResult(null);
     if (abortRef.current) abortRef.current.abort();
     abortRef.current = new AbortController();
-    const sys = `Eres un nutricionista experto con acceso a las tablas nutricionales de la USDA y la BEDCA española.
-Tu proceso OBLIGATORIO es:
-1. EXTRAE cada alimento/ingrediente de la descripción con su peso/cantidad exacta.
-2. Si el usuario indica un peso (ej: "2kg", "500g", "1kg"), ÚSALO EXACTAMENTE — NUNCA lo ignores.
-3. BUSCA los valores por 100g de cada alimento en tu base de datos (datos reales, no inventados).
-4. CALCULA: (kcal_por_100g × gramos_reales) / 100 para cada ingrediente.
-5. SUMA todos los resultados → esos son los totales.
+    // Contexto del usuario (mismo que analyzeImage)
+    const nombreM       = prof?.nombre || 'Usuario';
+    const tdeeM         = prof ? calcTDEE(prof) : 2000;
+    const deficitM      = prof?.deficit || 0;
+    const objetivoM     = prof?.calorias_objetivo || (tdeeM - deficitM);
+    const caloriasHoyM  = totalCal;
+    const caloriasRestM = Math.max(0, objetivoM - caloriasHoyM);
+    const protObjM      = prof?.macros?.proteina || Math.round((objetivoM * 0.30) / 4);
 
-EJEMPLO OBLIGATORIO de cómo razonar:
-- Input: "1 entrecot de 700g"
-- Entrecot/chuletón de vacuno (crudo, grasa moderada): ~270kcal/100g, prot 26g/100g, grasa 19g/100g, carbs 0g
-- Cálculo: kcal=270×700/100=1890 | prot=26×700/100=182g | grasa=19×700/100=133g | carbs=0g
-- Si fueran 2000g: kcal=5400, prot=520g, grasa=380g
+    const sys = `Eres un nutricionista deportivo experto con acceso a la USDA FoodData Central y la BEDCA española.
 
-NUNCA devuelvas kcal de porción estándar (200g) si el usuario dijo otro peso. SOLO JSON válido.`;
+DATOS DEL USUARIO:
+- Nombre: ${nombreM}
+- Objetivo kcal diario: ${objetivoM} kcal
+- Calorías ya consumidas hoy: ${caloriasHoyM} kcal
+- Calorías restantes: ${caloriasRestM} kcal
+- Objetivo de proteína: ${protObjM}g
+
+TU PROCESO OBLIGATORIO:
+1. EXTRAE cada alimento con su peso/cantidad exacta indicada por el usuario.
+2. Si se indica un peso ("400g", "2kg", "500g"), ÚSALO EXACTAMENTE — nunca lo cambies.
+3. CONSULTA los valores por 100g de cada alimento (usa datos reales de la USDA/BEDCA).
+4. CALCULA: (kcal_por_100g × gramos) / 100 para cada ingrediente.
+5. SUMA los totales.
+6. EVALÚA si encaja en el objetivo del usuario.
+
+VALORES DE REFERENCIA CLAVE (por 100g, en su estado indicado):
+- Tomate crudo: 18kcal | prot 0.9g | carbs 3.9g | grasa 0.2g
+- Pepino crudo: 15kcal | prot 0.7g | carbs 3.1g | grasa 0.1g
+- Lechuga: 15kcal | prot 1.4g | carbs 2.9g | grasa 0.2g
+- Zanahoria: 41kcal | prot 0.9g | carbs 10g | grasa 0.2g
+- Cebolla: 40kcal | prot 1.1g | carbs 9.3g | grasa 0.1g
+- Espinacas: 23kcal | prot 2.9g | carbs 3.6g | grasa 0.4g
+- Pollo plancha: 165kcal | prot 31g | grasa 3.6g | carbs 0g
+- Ternera plancha: 175kcal | prot 27g | grasa 7g | carbs 0g
+- Entrecot vacuno: 270kcal | prot 26g | grasa 19g | carbs 0g
+- Arroz cocido: 130kcal | prot 2.7g | carbs 28g | grasa 0.3g
+- Pasta cocida: 158kcal | prot 5.8g | carbs 31g | grasa 0.9g
+- Patatas fritas caseras: 312kcal | prot 3.4g | carbs 41g | grasa 15g
+- Aceite de oliva: 884kcal | grasa 100g (1 cucharada=10g=88kcal)
+- Pan blanco: 265kcal | prot 9g | carbs 49g | grasa 3.2g
+- Huevo frito: 196kcal | prot 14g | grasa 15g | carbs 0.3g
+- Salmón plancha: 208kcal | prot 20g | grasa 13g | carbs 0g
+- Merluza horno: 86kcal | prot 17g | grasa 1.5g | carbs 0g
+
+EJEMPLOS:
+- "400g de ensalada de tomate y pepino":
+  Tomate 200g: 18×200/100=36kcal | Pepino 200g: 15×200/100=30kcal → TOTAL: 66kcal, prot 3.2g, carbs 14g, grasa 0.6g
+- "1 entrecot de 700g":
+  Entrecot: 270×700/100=1890kcal | prot: 26×700/100=182g → TOTAL: 1890kcal
+- "150g de arroz cocido con 200g de pollo":
+  Arroz: 130×150/100=195kcal | Pollo: 165×200/100=330kcal → TOTAL: 525kcal, prot 68g
+
+REGLAS ABSOLUTAS:
+- NUNCA uses porción estándar si el usuario dio un peso específico
+- Para verduras y ensaladas: los valores son BAJOS (15-40kcal/100g), no los infles
+- Tu respuesta debe empezar con { y terminar con } — CERO texto antes o después`;
+
     const msg = `Calcula los macros de: "${manualText.slice(0, 600)}"
 
-Aplica tu proceso de 5 pasos paso a paso. Muestra el cálculo en el campo "descripcion".
-Devuelve SOLO este JSON:
-{"nombre_plato":"string","descripcion":"cálculo detallado: alimento→kcal/100g→peso→total","calorias":number,"proteina_g":number,"carbohidratos_g":number,"grasas_g":number,"fibra_g":number,"sodio_mg":number,"valoracion":"excelente|bueno|aceptable|mejorable|malo","consejo":"string","alertas":["string"]}`;
+Respuesta: empieza con { y termina con }. Sin texto, sin markdown.
+{"nombre_plato":"string","descripcion":"ingrediente (Xg): Ykcal/100g × X/100 = Zkcal — para cada uno","proceso_calculo":"suma total de todos los ingredientes","calorias":number,"proteina_g":number,"carbohidratos_g":number,"grasas_g":number,"fibra_g":number,"sodio_mg":number,"confianza_estimacion":"alta|media|baja","valoracion":"excelente|bueno|aceptable|mejorable|malo","valoracion_para_objetivo":"ideal|correcto|pasado|muy_pasado","calorias_restantes_despues":number,"consejo":"consejo personalizado","que_comer_despues":"siguiente comida sugerida","alertas":["string"]}`;
     try {
       const text = await callAI(sys, msg, null, 'image/jpeg', abortRef.current.signal, { temperature: 0.1 });
       const json = parseAIJson(text, {
-        nombre_plato: manualText, calorias: 300, proteina_g: 20, carbohidratos_g: 30,
-        grasas_g: 10, fibra_g: 3, sodio_mg: 300, valoracion: 'aceptable',
-        consejo: 'Estimación aproximada.', alertas: []
+        nombre_plato: manualText, calorias: 0, proteina_g: 0, carbohidratos_g: 0,
+        grasas_g: 0, fibra_g: 0, sodio_mg: 0, valoracion: 'aceptable',
+        confianza_estimacion: 'baja', valoracion_para_objetivo: 'correcto',
+        calorias_restantes_despues: caloriasRestM,
+        consejo: 'No se pudo calcular. Inténtalo de nuevo o describe el plato con más detalle.',
+        que_comer_despues: '', proceso_calculo: '', alertas: ['Error al procesar la respuesta de la IA.']
       });
       setManualResult(json);
     } catch (e) {
       if (e.name !== 'AbortError') {
-        setManualResult({ 
-          nombre_plato: manualText, 
-          calorias: 300, proteina_g: 20, carbohidratos_g: 30, grasas_g: 10, fibra_g: 3, sodio_mg: 300, 
-          valoracion: 'aceptable', 
-          consejo: `Error IA: ${e.message}`, 
-          alertas: [] 
+        setManualResult({
+          nombre_plato: manualText,
+          calorias: 0, proteina_g: 0, carbohidratos_g: 0, grasas_g: 0, fibra_g: 0, sodio_mg: 0,
+          valoracion: 'aceptable', confianza_estimacion: 'baja',
+          valoracion_para_objetivo: 'correcto', calorias_restantes_despues: caloriasRestM,
+          consejo: `Error IA: ${e.message}`,
+          que_comer_despues: '', proceso_calculo: '',
+          alertas: [`Error: ${e.message}`]
         });
       }
     }
     setLoadingManual(false);
-  }, [manualText, loadingManual]);
+  }, [manualText, loadingManual, prof, totalCal]);
 
   const addToLog = useCallback((result) => {
     if (!result) return;
