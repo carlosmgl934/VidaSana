@@ -26,14 +26,21 @@ const Calendario = () => {
     const log = state.dayLogs[state.perfil][dateStr];
     if (!log) return '#1e293b';
     const hasGym = log.actividad === 'gym';
+    const hasPaseo = !!log.paseoHecho;
     const dietaOk = log.dieta === 'completa';
     const dietaParcial = log.dieta === 'parcial';
+    const dietaRota = log.dieta === 'rota';
     const supOk = isMama || (log.proteinaTomada && log.creatinaTomada);
+    // Día perfecto: gym + dieta completa + suplementos
     if (hasGym && dietaOk && (isMama || supOk)) return '#064e3b';
-    if (dietaOk && !hasGym) return '#065f46';
-    if ((hasGym || log.actividad === 'paseo') && dietaParcial) return '#78350f';
-    if (!hasGym && log.dieta === 'rota') return '#7c2d12';
-    if (log.agua > 0 || log.dieta) return '#1e3a5f';
+    // Dieta completa (con o sin actividad)
+    if (dietaOk) return '#065f46';
+    // Dieta parcial
+    if (dietaParcial) return '#78350f';
+    // Dieta rota
+    if (dietaRota) return '#7c2d12';
+    // Algo registrado pero sin dieta
+    if (log.agua > 0 || hasGym || hasPaseo) return '#1e3a5f';
     return '#1e293b';
   }, [state.dayLogs, state.perfil, isMama]);
 
@@ -42,7 +49,7 @@ const Calendario = () => {
     if (!log) return [];
     const dots = [];
     if (log.actividad === 'gym') dots.push('#10b981');
-    if (log.actividad === 'paseo') dots.push('#3b82f6');
+    if (log.paseoHecho) dots.push('#3b82f6');
     if (log.dieta === 'completa') dots.push('#34d399');
     else if (log.dieta === 'parcial') dots.push('#f59e0b');
     else if (log.dieta === 'rota') dots.push('#ef4444');
@@ -220,14 +227,14 @@ const Calendario = () => {
               )}
             </div>
 
-            {/* Paseo */}
+            {/* Paseo — independiente del gym */}
             <div style={{ marginBottom: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <div style={{ fontWeight: 600 }}>🚶 Paseo / Cardio</div>
-                <Toggle value={selLog.actividad === 'paseo'}
-                  onChange={v => updateSelLog({ actividad: v ? 'paseo' : 'descanso' })} />
+                <Toggle value={!!selLog.paseoHecho}
+                  onChange={v => updateSelLog({ paseoHecho: v })} />
               </div>
-              {selLog.actividad === 'paseo' && (
+              {selLog.paseoHecho && (
                 <div style={{ marginTop: 8 }}>
                   <label style={{ fontSize: 11, color: '#64748b' }}>Km recorridos</label>
                   <input className="input-field" type="number" style={{ padding: '8px', marginTop: 4, width: '100%' }}
@@ -242,12 +249,14 @@ const Calendario = () => {
               <div style={{ fontWeight: 600, marginBottom: 8 }}>🥗 Dieta</div>
               <div style={{ display: 'flex', gap: 6 }}>
                 {[['completa','✅','Respetada','#10b981'],['parcial','⚠️','Parcial','#f59e0b'],['rota','❌','Rota','#ef4444']].map(([v, emoji, l, c]) => (
-                  <button key={v} onClick={() => updateSelLog({ dieta: v })} style={{
-                    flex: 1, padding: '8px 4px', borderRadius: 10,
-                    border: `1.5px solid ${selLog.dieta === v ? c : '#334155'}`,
-                    background: selLog.dieta === v ? `${c}22` : 'transparent',
-                    cursor: 'pointer', fontSize: 12, color: selLog.dieta === v ? c : '#64748b'
-                  }}>{emoji} {l}</button>
+                  <button key={v}
+                    onClick={() => updateSelLog({ dieta: selLog.dieta === v ? null : v })}
+                    style={{
+                      flex: 1, padding: '8px 4px', borderRadius: 10,
+                      border: `1.5px solid ${selLog.dieta === v ? c : '#334155'}`,
+                      background: selLog.dieta === v ? `${c}22` : 'transparent',
+                      cursor: 'pointer', fontSize: 12, color: selLog.dieta === v ? c : '#64748b'
+                    }}>{emoji} {l}</button>
                 ))}
               </div>
               {selLog.dieta === 'rota' && (

@@ -1,18 +1,29 @@
 // ============================================================
-// GOOGLE GEMINI API — Con AbortController, rate limiting y JSON safety
-// Modelo: gemini-2.5-pro  |  Clave: VITE_GEMINI_API_KEY en .env.local
+// VidaSana — API de IA (Google Gemini)
+//
+//  Modelo: gemini-1.5-flash  — rápido, gratuito, CON visión
+//  Key:    VITE_GEMINI_API_KEY en .env.local
+//
+//  callAI() / callAIGemini() → misma función, dos nombres
+//  para retrocompatibilidad con todos los módulos.
 // ============================================================
 
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
-const MODEL   = 'gemini-pro';
+const GEMINI_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
 
-// Endpoint REST de Gemini (browser-safe, sin SDK, sin CORS extra)
+// gemini-1.5-flash: soporta imágenes y es la capa gratuita más capaz
+const GEMINI_MODEL = 'gemini-1.5-flash';
+
 const GEMINI_URL = (key) =>
-  `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`;
+  `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key}`;
 
-// ---- Rate Limiter (token bucket: máx 5 llamadas cada 10s) ----
-// Gemini free tier es más generoso que Anthropic, subimos a 5
-const RATE_LIMIT = { maxCalls: 5, windowMs: 10_000 };
+// ── Helpers ──────────────────────────────────────────────────
+export const isValidBase64 = (str) => {
+  if (!str || typeof str !== 'string') return false;
+  return str.length > 0 && /^[A-Za-z0-9+/]*={0,2}$/.test(str);
+};
+
+// ── Rate limiter (máx 5 llamadas / 10 s) ────────────────────
+const RATE_LIMIT     = { maxCalls: 5, windowMs: 10_000 };
 const callTimestamps = [];
 
 const checkRateLimit = () => {
@@ -29,142 +40,102 @@ const checkRateLimit = () => {
   callTimestamps.push(now);
 };
 
-// ---- Validador de base64 ----
-export const isValidBase64 = (str) => {
-  if (!str || typeof str !== 'string') return false;
-  return str.length > 0 && /^[A-Za-z0-9+/]*={0,2}$/.test(str);
-};
-
+// ════════════════════════════════════════════════════════════
+//  callAIGemini — función principal
+// ════════════════════════════════════════════════════════════
 /**
- * Llama a la API de Google Gemini con soporte para:
- * - AbortController (cancelación si el componente se desmonta)
- * - Rate limiting (máx 5 llamadas/10s)
- * - Imagen base64 opcional (vision)
- * - Manejo de errores detallado
- *
- * Firma IDÉNTICA a la versión de Anthropic para que el resto de módulos
- * no necesite ningún cambio.
- *
- * @param {string} systemPrompt
- * @param {string} userMessage
- * @param {string|null} imageBase64  - Solo el dato base64 puro (sin prefijo data:...)
- * @param {string}      imageMediaType
- * @param {AbortSignal|null} signal  - Para cancelación con AbortController
+ * @param {string}      systemPrompt
+ * @param {string}      userMessage
+ * @param {string|null} imageBase64      - Solo base64 puro (sin prefijo data:...)
+ * @param {string}      imageMediaType   - 'image/jpeg' | 'image/png' | 'image/webp'
+ * @param {AbortSignal|null} signal
+ * @param {object}      genConfig        - Override de generationConfig (opcional)
  * @returns {Promise<string>}
  */
-export const callAI = async (
+export const callAIGemini = async (
   systemPrompt,
   userMessage,
   imageBase64    = null,
   imageMediaType = 'image/jpeg',
-  signal         = null
+  signal         = null,
+  genConfig      = {}
 ) => {
-  if (!API_KEY) {
-    throw new Error(
-      'Falta la API key de Gemini. Añádela en VITE_GEMINI_API_KEY en el archivo .env.local'
-    );
+  if (!GEMINI_KEY) {
+    throw new Error('Falta la API key de Gemini. Añádela en VITE_GEMINI_API_KEY en .env.local');
   }
 
-  // Rate limit check
   checkRateLimit();
 
-  // Validar imagen si se proporciona
   if (imageBase64 !== null && !isValidBase64(imageBase64)) {
     throw new Error('La imagen no se pudo procesar correctamente. Intenta con otra foto.');
   }
 
-  // ── Construir el array de partes del mensaje del usuario ──
-  // Gemini usa "parts" en lugar de "content" de Anthropic
   const userParts = [];
-
-  // Si hay imagen, va ANTES del texto (igual que Anthropic)
   if (imageBase64) {
-    userParts.push({
-      inline_data: {
-        mime_type: imageMediaType,
-        data: imageBase64
-      }
-    });
+    userParts.push({ inline_data: { mime_type: imageMediaType, data: imageBase64 } });
   }
-
   userParts.push({ text: userMessage });
 
-  // ── Cuerpo de la petición Gemini ──
   const body = {
-    // system_instruction equivale al "system" de Anthropic
-    system_instruction: {
-      parts: [{ text: systemPrompt }]
-    },
-    contents: [
-      {
-        role: 'user',
-        parts: userParts
-      }
-    ],
+    system_instruction: { parts: [{ text: systemPrompt }] },
+    contents: [{ role: 'user', parts: userParts }],
     generationConfig: {
       maxOutputTokens: 1024,
-      temperature: 0.7,      // balance creatividad/precisión
-      topP: 0.9
+      temperature: 0.4,   // más bajo = más preciso y menos repetitivo
+      topP: 0.85,
+      topK: 40,
+      ...genConfig,       // permite sobreescribir desde el punto de llamada
     },
-    // Safety settings relajados para contenido médico/nutricional
     safetySettings: [
       { category: 'HARM_CATEGORY_HARASSMENT',        threshold: 'BLOCK_ONLY_HIGH' },
       { category: 'HARM_CATEGORY_HATE_SPEECH',       threshold: 'BLOCK_ONLY_HIGH' },
       { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
-      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' }
-    ]
+      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
+    ],
   };
 
-  let requestUrl = GEMINI_URL(API_KEY);
+  let requestUrl = GEMINI_URL(GEMINI_KEY);
   let res = await fetch(requestUrl, {
-    method:  'POST',
-    signal,                   // AbortController signal
+    method: 'POST', signal,
     headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify(body)
+    body: JSON.stringify(body),
   });
 
-  // Si el modelo no se encuentra, buscar dinámicamente uno que exista en la cuenta
+  // Fallback automático si el modelo no existe en la cuenta
   if (res.status === 404) {
     try {
-      const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
+      const modelsRes  = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${GEMINI_KEY}`);
       const modelsData = await modelsRes.json();
-      const validModel = modelsData.models?.find(m => m.supportedGenerationMethods?.includes('generateContent') && m.name.includes('gemini'));
+      // Preferir modelos flash con visión
+      const validModel = modelsData.models?.find(
+        m => m.supportedGenerationMethods?.includes('generateContent') &&
+             m.name.includes('gemini') &&
+             (m.name.includes('flash') || m.name.includes('pro'))
+      );
       if (validModel) {
-        requestUrl = `https://generativelanguage.googleapis.com/v1beta/${validModel.name}:generateContent?key=${API_KEY}`;
+        requestUrl = `https://generativelanguage.googleapis.com/v1beta/${validModel.name}:generateContent?key=${GEMINI_KEY}`;
         res = await fetch(requestUrl, {
-          method:  'POST',
-          signal,
+          method: 'POST', signal,
           headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify(body)
+          body: JSON.stringify(body),
         });
       }
     } catch (err) {
-      console.warn('Fallo al buscar modelos alternativos', err);
+      console.warn('[VidaSana] Fallo al buscar modelos alternativos de Gemini', err);
     }
   }
 
   if (!res.ok) {
-    // Gemini devuelve errores en { error: { code, message, status } }
     const err = await res.json().catch(() => ({}));
     const msg = err.error?.message || `Error ${res.status} de la API de Gemini`;
-
-    // Mapear códigos de error comunes a mensajes en español
-    if (res.status === 429) {
-      throw new Error('Has superado el límite de peticiones de Gemini. Espera un momento.');
-    }
-    if (res.status === 400 && msg.includes('API_KEY')) {
-      throw new Error('API key de Gemini inválida. Revisa VITE_GEMINI_API_KEY en .env.local');
-    }
+    if (res.status === 429) throw new Error('Has superado el límite de peticiones de Gemini. Espera un momento.');
+    if (res.status === 400 && msg.includes('API_KEY')) throw new Error('API key de Gemini inválida. Revisa VITE_GEMINI_API_KEY en .env.local');
     throw new Error(msg);
   }
 
-  const data = await res.json();
-
-  // ── Extraer el texto de la respuesta de Gemini ──
-  // Estructura: data.candidates[0].content.parts[0].text
+  const data      = await res.json();
   const candidate = data.candidates?.[0];
 
-  // Comprobar si fue bloqueado por safety filters
   if (!candidate) {
     const reason = data.promptFeedback?.blockReason;
     throw new Error(
@@ -174,27 +145,24 @@ export const callAI = async (
     );
   }
 
-  // finish_reason puede ser SAFETY o MAX_TOKENS — seguimos igual
-  const text = candidate.content?.parts?.[0]?.text ?? '';
-  return text;
+  return candidate.content?.parts?.[0]?.text ?? '';
 };
+
+// callAI — alias de retrocompatibilidad (todos los módulos lo siguen usando)
+export const callAI = callAIGemini;
+
+// ════════════════════════════════════════════════════════════
+//  Utilidades compartidas
+// ════════════════════════════════════════════════════════════
 
 /**
  * Parsea JSON de una respuesta de IA de forma segura.
- * Extrae el primer objeto JSON del texto (incluso si hay texto antes/después).
- * Compatible con las respuestas de Gemini que a veces añaden markdown ```json...```
- *
- * @param {string} text
- * @param {object} fallback - Objeto a retornar si el parse falla
+ * Compatible con respuestas que añaden markdown ```json...```
  */
 export const parseAIJson = (text, fallback = {}) => {
   try {
-    // Primero intentar extraer JSON de bloque markdown ```json ... ```
     const mdMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (mdMatch) {
-      return JSON.parse(mdMatch[1].trim());
-    }
-    // Fallback: extraer el primer objeto JSON del texto libre
+    if (mdMatch) return JSON.parse(mdMatch[1].trim());
     const objMatch = text.match(/\{[\s\S]*\}/);
     if (!objMatch) throw new Error('Sin JSON en respuesta');
     return JSON.parse(objMatch[0]);

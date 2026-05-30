@@ -353,12 +353,18 @@ const IANutricional = () => {
     if (abortRef.current) abortRef.current.abort();
     abortRef.current = new AbortController();
 
-    const sys = `Eres un nutricionista experto con visión computacional. SIEMPRE respondes en JSON válido con la estructura exacta solicitada. Nada más.`;
-    const msg = `Analiza esta imagen de comida${pesoAprox ? ` (aprox. ${pesoAprox}g)` : ''} y devuelve EXACTAMENTE este JSON:
-{"nombre_plato":"string","descripcion":"string","calorias":number,"proteina_g":number,"carbohidratos_g":number,"grasas_g":number,"fibra_g":number,"sodio_mg":number,"indice_saciedad":"bajo|medio|alto","valoracion":"excelente|bueno|aceptable|mejorable|malo","consejo":"string","alertas":["string"],"alternativas_saludables":["string"]}`;
+    const sys = `Eres un nutricionista experto con visión computacional avanzada. Tu tarea es analizar ESTA imagen específica, no dar valores genéricos. Describes exactamente lo que ves (ingredientes visibles, tamaño de porción, método de cocción) y estimas calorías basándote en esa descripción real. Nunca repitas los mismos valores para platos distintos. SOLO devuelves JSON válido, sin texto adicional.`;
+    const msg = `Mira esta imagen de comida con atención${pesoAprox ? ` (el plato pesa aproximadamente ${pesoAprox}g)` : ''}.
+
+Paso 1 — Describe brevemente lo que ves (ingredientes, porciones, método cocción).
+Paso 2 — Estima calorías y macros REALES basándote en esa descripción, NO valores por defecto.
+
+Devuelve EXACTAMENTE este JSON (números enteros/decimales reales, no placeholder):
+{"nombre_plato":"string descriptivo del plato real","descripcion":"string con ingredientes y método de cocción","calorias":number,"proteina_g":number,"carbohidratos_g":number,"grasas_g":number,"fibra_g":number,"sodio_mg":number,"indice_saciedad":"bajo|medio|alto","valoracion":"excelente|bueno|aceptable|mejorable|malo","consejo":"string consejo personalizado para este plato específico","alertas":["string"],"alternativas_saludables":["string"]}`;
 
     try {
-      const text = await callAI(sys, msg, imageBase64, imageMediaType, abortRef.current.signal);
+      // temperature 0.2 para máxima precisión en análisis visual
+      const text = await callAI(sys, msg, imageBase64, imageMediaType, abortRef.current.signal, { temperature: 0.2, topP: 0.8 });
       const json = parseAIJson(text, {
         nombre_plato: 'Plato analizado', calorias: 400, proteina_g: 25,
         carbohidratos_g: 40, grasas_g: 15, fibra_g: 5, sodio_mg: 400,
@@ -390,9 +396,13 @@ const IANutricional = () => {
     setManualResult(null);
     if (abortRef.current) abortRef.current.abort();
     abortRef.current = new AbortController();
-    const sys = `Eres un nutricionista. Estimas macronutrientes de descripciones. SOLO devuelves JSON válido.`;
-    const msg = `Estima los macros de: "${manualText.slice(0, 500)}". Devuelve EXACTAMENTE:
-{"nombre_plato":"string","calorias":number,"proteina_g":number,"carbohidratos_g":number,"grasas_g":number,"fibra_g":number,"sodio_mg":number,"valoracion":"excelente|bueno|aceptable|mejorable|malo","consejo":"string","alertas":["string"]}`;
+    const sys = `Eres un nutricionista experto. Estimas macronutrientes de descripciones textuales con precisión. Tienes en cuenta la cantidad/gramos mencionados. Si no se indica cantidad, asumes una porción habitual española. Nunca uses valores genéricos: cada alimento tiene su propio perfil nutricional. SOLO devuelves JSON válido.`;
+    const msg = `Estima los macros de esta comida: "${manualText.slice(0, 500)}".
+
+Ten en cuenta: ingredientes específicos, método de cocción si se menciona, cantidades o porciones.
+
+Devuelve EXACTAMENTE este JSON con valores reales calculados para ESTA comida:
+{"nombre_plato":"string","calorias":number,"proteina_g":number,"carbohidratos_g":number,"grasas_g":number,"fibra_g":number,"sodio_mg":number,"valoracion":"excelente|bueno|aceptable|mejorable|malo","consejo":"string personalizado","alertas":["string"]}`;
     try {
       const text = await callAI(sys, msg, null, 'image/jpeg', abortRef.current.signal);
       const json = parseAIJson(text, {
