@@ -128,7 +128,41 @@ export const callAIGemini = async (
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     const msg = err.error?.message || `Error ${res.status} de la API de Gemini`;
-    if (res.status === 429) throw new Error('Has superado el límite de peticiones de Gemini. Espera un momento.');
+
+    // 429 — Rate limit: esperar 65s y reintentar una vez automáticamente
+    if (res.status === 429) {
+      const retryAfter = parseInt(res.headers?.get?.('Retry-After') || '65', 10);
+      const waitMs = Math.max(retryAfter, 65) * 1000;
+      console.warn(`[VidaSana] Rate limit Gemini. Reintentando en ${Math.round(waitMs/1000)}s...`);
+
+      // Esperar respetando el AbortSignal
+      await new Promise((resolve, reject) => {
+        const timer = setTimeout(resolve, waitMs);
+        signal?.addEventListener('abort', () => { clearTimeout(timer); reject(new DOMException('Aborted', 'AbortError')); });
+      });
+
+      // Reintento
+      const retryRes = await fetch(requestUrl, {
+        method: 'POST', signal,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      if (retryRes.status === 429) {
+        throw new Error('Límite de peticiones de Gemini alcanzado. Espera 1 minuto antes de volver a intentarlo.');
+      }
+      if (!retryRes.ok) {
+        const retryErr = await retryRes.json().catch(() => ({}));
+        throw new Error(retryErr.error?.message || `Error ${retryRes.status} en reintento`);
+      }
+
+      // El reintento funcionó — continuar con la respuesta del reintento
+      const retryData      = await retryRes.json();
+      const retryCandidate = retryData.candidates?.[0];
+      if (!retryCandidate) throw new Error('Gemini no devolvió respuesta en el reintento.');
+      return retryCandidate.content?.parts?.[0]?.text ?? '';
+    }
+
     if (res.status === 400 && msg.includes('API_KEY')) throw new Error('API key de Gemini inválida. Revisa VITE_GEMINI_API_KEY en .env.local');
     throw new Error(msg);
   }
