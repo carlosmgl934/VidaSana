@@ -25,24 +25,68 @@ const CHAT_SUGGESTIONS = [
 const MacroResult = React.memo(({ result, onAddToLog }) => {
   if (!result) return null;
   const color = VALOR_COLORS[result.valoracion] || '#94a3b8';
+
+  const OBJ_COLORS = {
+    ideal: '#10b981', correcto: '#34d399', pasado: '#f59e0b', muy_pasado: '#ef4444'
+  };
+  const CONF_COLORS = { alta: '#10b981', media: '#f59e0b', baja: '#ef4444' };
+  const objColor  = OBJ_COLORS[result.valoracion_para_objetivo]  || '#64748b';
+  const confColor = CONF_COLORS[result.confianza_estimacion] || '#64748b';
+
   const macroRows = [
     { l: 'Proteína', v: result.proteina_g, max: 50, color: '#10b981' },
     { l: 'Carbos', v: result.carbohidratos_g, max: 100, color: '#f59e0b' },
     { l: 'Grasa', v: result.grasas_g, max: 50, color: '#6366f1' },
     { l: 'Fibra', v: result.fibra_g, max: 25, color: '#3b82f6' },
   ];
+
   return (
     <div className="card animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      {/* Cabecera: nombre + badges */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 18, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{result.nombre_plato}</div>
-          {result.descripcion && <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{result.descripcion}</div>}
+          {result.descripcion && <div style={{ fontSize: 11, color: '#64748b', marginTop: 4, lineHeight: 1.5 }}>{result.descripcion}</div>}
         </div>
-        <span className="badge" style={{ background: `${color}22`, color, flexShrink: 0, marginLeft: 8 }}>{result.valoracion}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end', flexShrink: 0 }}>
+          <span className="badge" style={{ background: `${color}22`, color }}>{result.valoracion}</span>
+          {result.confianza_estimacion && (
+            <span style={{ fontSize: 10, color: confColor, fontWeight: 600 }}>
+              🎯 {result.confianza_estimacion === 'alta' ? 'Alta precisión' : result.confianza_estimacion === 'media' ? 'Precisión media' : 'Baja precisión'}
+            </span>
+          )}
+          {result.aceite_incluido && (
+            <span style={{ fontSize: 10, color: '#94a3b8' }}>🫒 aceite incluido</span>
+          )}
+        </div>
       </div>
-      <div style={{ fontSize: 36, fontWeight: 800, color: '#10b981', textAlign: 'center' }}>
-        {result.calorias} kcal
+
+      {/* Calorías grandes */}
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 42, fontWeight: 800, color: '#10b981', lineHeight: 1 }}>{result.calorias}</div>
+        <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>kcal</div>
       </div>
+
+      {/* Badge objetivo + restantes */}
+      {result.valoracion_para_objetivo && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: `${objColor}18`, borderRadius: 10, padding: '8px 12px' }}>
+          <span style={{ fontSize: 12, color: objColor, fontWeight: 700 }}>
+            {result.valoracion_para_objetivo === 'ideal' ? '✅ Ideal para tu objetivo' :
+             result.valoracion_para_objetivo === 'correcto' ? '👍 Correcto para tu objetivo' :
+             result.valoracion_para_objetivo === 'pasado' ? '⚠️ Algo pasado de tu objetivo' :
+             '🔴 Muy pasado de tu objetivo'}
+          </span>
+          {result.calorias_restantes_despues != null && (
+            <span style={{ fontSize: 12, color: '#64748b' }}>
+              {result.calorias_restantes_despues >= 0
+                ? `Quedan ${result.calorias_restantes_despues} kcal`
+                : `${Math.abs(result.calorias_restantes_despues)} kcal de más`}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Barras de macros */}
       {macroRows.map(({ l, v, max, color: c }) => (
         <div key={l}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
@@ -53,11 +97,32 @@ const MacroResult = React.memo(({ result, onAddToLog }) => {
             color={`linear-gradient(90deg, ${c}, ${c}aa)`} />
         </div>
       ))}
+
+      {/* Razonamiento del cálculo */}
+      {result.proceso_calculo && (
+        <details style={{ fontSize: 11, color: '#475569', cursor: 'pointer' }}>
+          <summary style={{ color: '#64748b', fontWeight: 600, marginBottom: 4 }}>🧮 Ver cálculo detallado</summary>
+          <div style={{ marginTop: 6, lineHeight: 1.6, background: '#0f172a', borderRadius: 8, padding: '8px 10px' }}>
+            {result.proceso_calculo}
+          </div>
+        </details>
+      )}
+
+      {/* Consejo */}
       {result.consejo && (
         <div style={{ background: 'rgba(99,102,241,0.1)', borderRadius: 10, padding: 12, fontSize: 13, color: '#a5b4fc' }}>
           💡 {result.consejo}
         </div>
       )}
+
+      {/* Qué comer después */}
+      {result.que_comer_despues && (
+        <div style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 10, padding: 12, fontSize: 13, color: '#6ee7b7' }}>
+          🍽️ <span style={{ fontWeight: 600 }}>Próxima comida: </span>{result.que_comer_despues}
+        </div>
+      )}
+
+      {/* Alertas */}
       {result.alertas?.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {result.alertas.map((a, i) => (
@@ -65,6 +130,8 @@ const MacroResult = React.memo(({ result, onAddToLog }) => {
           ))}
         </div>
       )}
+
+      {/* Alternativas */}
       {result.alternativas_saludables?.length > 0 && (
         <div>
           <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6 }}>Alternativas más saludables:</div>
@@ -75,6 +142,7 @@ const MacroResult = React.memo(({ result, onAddToLog }) => {
           </div>
         </div>
       )}
+
       <button className="btn-primary" onClick={onAddToLog}>
         ➕ Añadir al log de hoy
       </button>
@@ -353,33 +421,177 @@ const IANutricional = () => {
     if (abortRef.current) abortRef.current.abort();
     abortRef.current = new AbortController();
 
-    const weightHint = pesoAprox ? ` El usuario confirma que el total pesa aproximadamente ${pesoAprox}g — usa ese dato como referencia obligatoria para escalar los cálculos.` : '';
-    const sys = `Eres un nutricionista experto con acceso a tablas nutricionales de la USDA y BEDCA.
-Tu proceso OBLIGATORIO para analizar esta foto:
-1. IDENTIFICA cada alimento visible y su método de cocción.
-2. ESTIMA el peso de cada elemento en gramos usando el tamaño del plato y referencias visuales.${weightHint}
-3. CONSULTA las kcal y macros por 100g de cada alimento (valores reales de base de datos, no genéricos).
-4. CALCULA: (kcal_por_100g × peso_en_g) / 100 para cada ingrediente.
-5. SUMA los resultados para obtener los totales del plato completo.
+    // ── Contexto del usuario para el prompt ──────────────────────
+    const nombre        = prof?.nombre || 'Usuario';
+    const sexo          = prof?.sexo === 'mujer' ? 'mujer' : 'hombre';
+    const edad          = prof?.fechaNacimiento ? calcAge(prof.fechaNacimiento) : (prof?.edad || '?');
+    const pesoActual    = prof?.peso || '?';
+    const tdee          = prof ? calcTDEE(prof) : 2000;
+    const deficit       = prof?.deficit || 0;
+    const objetivoKcal  = prof?.calorias_objetivo || (tdee - deficit);
+    const caloriasHoy   = totalCal;
+    const caloriasRest  = Math.max(0, objetivoKcal - caloriasHoy);
+    const proteinaObj   = prof?.macros?.proteina || Math.round((objetivoKcal * 0.30) / 4);
+    const carbsObj      = prof?.macros?.carbos   || Math.round((objetivoKcal * 0.40) / 4);
+    const grasaObj      = prof?.macros?.grasa    || Math.round((objetivoKcal * 0.30) / 9);
 
-Ejemplo de razonamiento correcto:
-- Veo un filete de ternera de ~350g a la plancha → ternera plancha: 175kcal/100g → 175×350/100=612kcal, prot 27g/100g→94.5g, grasa 8g/100g→28g
-- Si también hay 200g de patatas fritas → 312kcal/100g → 312×200/100=624kcal, carbs 35g/100g→70g, grasa 17g/100g→34g
-- Total: 1236kcal, prot 94.5g, carbs 70g, grasa 62g
+    const sys = `Eres un nutricionista deportivo experto con acceso a las bases de datos nutricionales USDA FoodData Central, BEDCA (Base de Datos Española de Composición de Alimentos) y CESNAF. Llevas 20 años analizando platos mediterráneos, españoles e internacionales.
 
-Aplica ESTE MISMO PROCESO a la imagen adjunta. NUNCA uses valores de porción estándar si puedes estimar el peso real. SOLO devuelves JSON válido.`;
-    const msg = `Analiza esta imagen de comida aplicando tu proceso de 5 pasos.
-Devuelve ÚNICAMENTE este JSON con los valores calculados matemáticamente:
-{"nombre_plato":"nombre real del plato","descripcion":"ingredientes con pesos estimados y cálculo","calorias":number,"proteina_g":number,"carbohidratos_g":number,"grasas_g":number,"fibra_g":number,"sodio_mg":number,"indice_saciedad":"bajo|medio|alto","valoracion":"excelente|bueno|aceptable|mejorable|malo","consejo":"consejo específico para este plato","alertas":["string"],"alternativas_saludables":["string"]}`;
+DATOS DEL USUARIO (úsalos para personalizar el análisis):
+- Nombre: ${nombre}
+- Sexo: ${sexo}
+- Edad: ${edad} años
+- Peso actual: ${pesoActual}kg
+- Objetivo calórico diario: ${objetivoKcal} kcal
+- Calorías ya consumidas hoy: ${caloriasHoy} kcal
+- Calorías restantes para hoy: ${caloriasRest} kcal
+- Macros objetivo: ${proteinaObj}g proteína / ${carbsObj}g carbos / ${grasaObj}g grasa
+
+TU PROCESO OBLIGATORIO — EJECUTA ESTOS 6 PASOS EN ORDEN:
+
+PASO 1 — IDENTIFICA: Lista cada alimento visible, su método de cocción y su estado (crudo/cocinado, con/sin piel, etc.)
+
+PASO 2 — ESTIMA PESOS visualmente usando estas referencias de tamaño:
+  - Plato normal (26-28cm): capacidad ~400-600g de comida
+  - Plato hondo (22-24cm): capacidad ~300-450g
+  - Cuenco pequeño: ~200-300g
+  - Filete mediano (tarjeta de crédito de grosor): 150-200g
+  - Filete grande (palma de mano): 250-350g
+  - Pechuga de pollo entera: 180-220g
+  - Muslo de pollo con hueso: 150-200g
+  - Chuleta/entrecot mediano: 200-280g
+  - Chuleta/entrecot grande: 350-500g
+  - Huevo L: 60g (50g sin cáscara)
+  - Patata mediana: 150g | grande: 250g
+  - Puñado de pasta cocida: 180-220g | ración entera: 300-350g
+  - Ración de arroz cocido: 180-200g | grande: 280-320g
+  - Loncha de jamón: 20-25g | loncha gruesa: 35-45g
+  - Rebanada de pan de molde: 25-30g | barra normal: 30-40g
+  - Cucharada de aceite: 10g (84-90kcal, muy importante sumarlo)
+  - Hamburguesa restaurante: 150-200g solo la carne
+  - Pizza individual entera: 300-400g total
+  - Tazón de cereales seco: 40-50g
+  - Ración de legumbres cocidas: 200-250g
+${pesoAprox ? `  ⚠️ PESO CONFIRMADO POR EL USUARIO: ${pesoAprox}g — usa este dato como referencia absoluta y ajusta todos los cálculos proporcionalmente.` : ''}
+
+PASO 3 — CONSULTA valores nutricionales por 100g EN SU ESTADO REAL (cocinado, no crudo):
+  CARNES:
+  - Pollo a la plancha (pechuga sin piel): 165kcal | prot 31g | grasa 3.6g | carbs 0g
+  - Pollo frito con piel: 269kcal | prot 27g | grasa 17g | carbs 3g
+  - Ternera plancha magra (solomillo/lomo): 175kcal | prot 27g | grasa 7g | carbs 0g
+  - Entrecot/chuletón vacuno (grasa media): 270kcal | prot 26g | grasa 19g | carbs 0g
+  - Cerdo plancha (lomo): 185kcal | prot 29g | grasa 7g | carbs 0g
+  - Cerdo frito (costillas): 295kcal | prot 25g | grasa 22g | carbs 0g
+  - Cordero plancha: 260kcal | prot 24g | grasa 18g | carbs 0g
+  - Hamburguesa vacuno (80/20): 290kcal | prot 24g | grasa 21g | carbs 0g
+  - Jamón serrano: 241kcal | prot 30g | grasa 13g | carbs 0.3g
+  - Chorizo: 455kcal | prot 24g | grasa 38g | carbs 2g
+  PESCADOS:
+  - Salmón plancha: 208kcal | prot 20g | grasa 13g | carbs 0g
+  - Merluza al horno: 86kcal | prot 17g | grasa 1.5g | carbs 0g
+  - Atún fresco plancha: 184kcal | prot 30g | grasa 6g | carbs 0g
+  - Atún lata al natural: 116kcal | prot 26g | grasa 0.5g | carbs 0g
+  - Bacalao al horno: 105kcal | prot 23g | grasa 1g | carbs 0g
+  HUEVOS:
+  - Huevo frito (con aceite): 196kcal | prot 14g | grasa 15g | carbs 0.3g
+  - Huevo cocido/pasado: 155kcal | prot 13g | grasa 11g | carbs 1.1g
+  - Tortilla española (huevo+patata): 218kcal | prot 9g | grasa 13g | carbs 16g
+  HIDRATOS:
+  - Arroz blanco cocido: 130kcal | prot 2.7g | grasa 0.3g | carbs 28g
+  - Pasta cocida (macarrones/espaguetis): 158kcal | prot 5.8g | grasa 0.9g | carbs 31g
+  - Patatas fritas caseras: 312kcal | prot 3.4g | grasa 15g | carbs 41g
+  - Patatas fritas bolsa (Lay's estilo): 536kcal | prot 7g | grasa 35g | carbs 49g
+  - Patatas al horno: 93kcal | prot 2.5g | grasa 0.1g | carbs 21g
+  - Pan blanco: 265kcal | prot 9g | grasa 3.2g | carbs 49g
+  - Pan integral: 247kcal | prot 10g | grasa 3.4g | carbs 44g
+  VERDURAS Y LEGUMBRES:
+  - Ensalada mixta (lechuga+tomate+cebolla sin aliño): 20kcal | prot 1g | grasa 0.2g | carbs 3.5g
+  - Brócoli al vapor: 35kcal | prot 2.4g | grasa 0.4g | carbs 7g
+  - Lentejas cocidas: 116kcal | prot 9g | grasa 0.4g | carbs 20g
+  - Garbanzos cocidos: 164kcal | prot 8.9g | grasa 2.6g | carbs 27g
+  LÁCTEOS Y EXTRAS:
+  - Queso manchego curado: 392kcal | prot 27g | grasa 32g | carbs 0.5g
+  - Queso fresco: 98kcal | prot 12g | grasa 4g | carbs 4g
+  - Aceite de oliva: 884kcal | prot 0g | grasa 100g | carbs 0g (UNA cucharada=84kcal)
+  - Mantequilla: 717kcal | prot 0.9g | grasa 81g | carbs 0.1g
+  PLATOS ELABORADOS:
+  - Pizza margarita (base+tomate+queso): 266kcal | prot 11g | grasa 10g | carbs 33g
+  - Paella de marisco: 150kcal | prot 10g | grasa 4g | carbs 22g
+  - Croquetas (rebozadas y fritas): 260kcal | prot 8g | grasa 15g | carbs 24g
+
+PASO 4 — CALCULA para CADA ingrediente identificado:
+  kcal = (kcal_por_100g × peso_estimado_g) / 100
+  proteína_g = (prot_por_100g × peso_estimado_g) / 100
+  (aplica la misma fórmula para carbos, grasa y fibra)
+  ⚠️ Incluye el aceite de aliño/cocción si hay señales visuales de grasa o brillo.
+
+PASO 5 — SUMA todos los ingredientes para obtener totales del plato completo.
+
+PASO 6 — EVALÚA en contexto del usuario ${nombre}:
+  - Objetivo kcal diario: ${objetivoKcal} kcal | Ya lleva: ${caloriasHoy} kcal | Quedan: ${caloriasRest} kcal
+  - ¿Encaja este plato en lo que le queda del día?
+  - ¿Aporta suficiente proteína para sus ${proteinaObj}g objetivo?
+  - ¿Qué debería comer en la siguiente comida para completar el día?
+
+═══ EJEMPLOS DE RAZONAMIENTO CORRECTO ═══
+
+EJEMPLO 1 — Pechuga de pollo con arroz y ensalada:
+  Identifico: pechuga plancha ~200g + arroz cocido ~180g + ensalada ~100g + 1 cucharada aceite 10g
+  Cálculo:
+    Pollo: 165×200/100 = 330kcal | prot: 31×200/100=62g | grasa: 3.6×200/100=7.2g | carbs: 0
+    Arroz: 130×180/100 = 234kcal | prot: 2.7×180/100=4.9g | grasa: 0.3×180/100=0.5g | carbs: 28×180/100=50.4g
+    Ensalada: 20×100/100 = 20kcal | prot: 1g | grasa: 0.2g | carbs: 3.5g
+    Aceite: 884×10/100 = 88kcal | grasa: 10g
+  TOTAL: 672kcal | prot: 68g | carbs: 54g | grasa: 18g
+
+EJEMPLO 2 — Entrecot grande con patatas fritas:
+  Identifico: entrecot ~400g + patatas fritas caseras ~200g + sal/pimienta
+  Cálculo:
+    Entrecot: 270×400/100 = 1080kcal | prot: 26×400/100=104g | grasa: 19×400/100=76g | carbs: 0
+    Patatas fritas: 312×200/100 = 624kcal | prot: 3.4×200/100=6.8g | grasa: 15×200/100=30g | carbs: 41×200/100=82g
+    (aceite fritura ya incluido en valor "patatas fritas caseras")
+  TOTAL: 1704kcal | prot: 111g | carbs: 82g | grasa: 106g
+
+EJEMPLO 3 — Bocadillo de jamón serrano:
+  Identifico: barra de pan ~120g + jamón serrano ~60g
+  Cálculo:
+    Pan: 265×120/100 = 318kcal | prot: 9×120/100=10.8g | grasa: 3.2×120/100=3.8g | carbs: 49×120/100=58.8g
+    Jamón: 241×60/100 = 144.6kcal | prot: 30×60/100=18g | grasa: 13×60/100=7.8g | carbs: 0.3×60/100=0.18g
+  TOTAL: 463kcal | prot: 29g | carbs: 59g | grasa: 12g
+
+EJEMPLO 4 — Tortilla española de 3 huevos con patata:
+  Identifico: tortilla española ~300g (3 huevos + patata + aceite)
+  Valor de referencia: tortilla española = 218kcal/100g
+  Cálculo: 218×300/100 = 654kcal | prot: 9×300/100=27g | grasa: 13×300/100=39g | carbs: 16×300/100=48g
+
+EJEMPLO 5 — Pizza margarita individual:
+  Identifico: pizza entera individual ~350g
+  Cálculo: 266×350/100 = 931kcal | prot: 11×350/100=38.5g | grasa: 10×350/100=35g | carbs: 33×350/100=115.5g
+
+═══ REGLAS ABSOLUTAS ═══
+  - NUNCA uses valores de porción estándar genéricos si puedes estimar el peso visualmente
+  - Si hay aceite, salsa o aderezos visibles (brillantez, charco, goteo), inclúyelos siempre
+  - Si ves señales claras de fritura (dorado profundo, grasa visible, textura crujiente), aplica valores de "frito"
+  - Si hay duda entre dos alimentos similares, elige el de mayor valor calórico (más seguro)
+  - Indica en "confianza_estimacion": "alta" si el plato es claramente identificable, "media" si hay partes dudosas, "baja" si la imagen es confusa o el plato tiene ingredientes ocultos
+  - SOLO devuelves JSON válido, sin texto adicional, sin bloques markdown`;
+
+    const msg = `Analiza esta imagen de comida aplicando los 6 pasos obligatorios.
+Devuelve ÚNICAMENTE este JSON (sin texto extra, sin backticks, sin markdown):
+{"nombre_plato":"nombre específico del plato real","descripcion":"lista detallada: ingrediente (Xg) → Ykcal/100g → Zkcal total","proceso_calculo":"resumen matemático paso 4 con cada multiplicación","calorias":number,"proteina_g":number,"carbohidratos_g":number,"grasas_g":number,"fibra_g":number,"sodio_mg":number,"aceite_incluido":true|false,"confianza_estimacion":"alta|media|baja","indice_saciedad":"bajo|medio|alto","valoracion":"excelente|bueno|aceptable|mejorable|malo","valoracion_para_objetivo":"ideal|correcto|pasado|muy_pasado","calorias_restantes_despues":number,"consejo":"consejo específico para este plato y para el objetivo de ${nombre}","que_comer_despues":"sugerencia concreta de próxima comida para completar macros del día","alertas":["string"],"alternativas_saludables":["string"]}`;
 
     try {
       const text = await callAI(sys, msg, imageBase64, imageMediaType, abortRef.current.signal, { temperature: 0.1, topP: 0.8 });
       const json = parseAIJson(text, {
-        nombre_plato: 'Plato analizado', calorias: 400, proteina_g: 25,
-        carbohidratos_g: 40, grasas_g: 15, fibra_g: 5, sodio_mg: 400,
+        nombre_plato: 'Plato analizado', calorias: 0, proteina_g: 0,
+        carbohidratos_g: 0, grasas_g: 0, fibra_g: 0, sodio_mg: 0,
         indice_saciedad: 'medio', valoracion: 'aceptable',
-        consejo: 'Análisis aproximado. Revisa tu API key si el resultado no es preciso.',
-        alertas: [], alternativas_saludables: []
+        aceite_incluido: false, confianza_estimacion: 'baja',
+        valoracion_para_objetivo: 'correcto', calorias_restantes_despues: caloriasRest,
+        consejo: 'No se pudo analizar correctamente la imagen.',
+        que_comer_despues: '', proceso_calculo: '',
+        alertas: ['El análisis de imagen falló. Prueba con la pestaña ✍️ IA (texto manual).'],
+        alternativas_saludables: []
       });
       setAnalisisResult(json);
       if (!isMama) {
