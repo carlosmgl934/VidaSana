@@ -353,18 +353,27 @@ const IANutricional = () => {
     if (abortRef.current) abortRef.current.abort();
     abortRef.current = new AbortController();
 
-    const sys = `Eres un nutricionista experto con visión computacional avanzada. Tu tarea es analizar ESTA imagen específica, no dar valores genéricos. Describes exactamente lo que ves (ingredientes visibles, tamaño de porción, método de cocción) y estimas calorías basándote en esa descripción real. Nunca repitas los mismos valores para platos distintos. SOLO devuelves JSON válido, sin texto adicional.`;
-    const msg = `Mira esta imagen de comida con atención${pesoAprox ? ` (el plato pesa aproximadamente ${pesoAprox}g)` : ''}.
+    const weightHint = pesoAprox ? ` El usuario confirma que el total pesa aproximadamente ${pesoAprox}g — usa ese dato como referencia obligatoria para escalar los cálculos.` : '';
+    const sys = `Eres un nutricionista experto con acceso a tablas nutricionales de la USDA y BEDCA.
+Tu proceso OBLIGATORIO para analizar esta foto:
+1. IDENTIFICA cada alimento visible y su método de cocción.
+2. ESTIMA el peso de cada elemento en gramos usando el tamaño del plato y referencias visuales.${weightHint}
+3. CONSULTA las kcal y macros por 100g de cada alimento (valores reales de base de datos, no genéricos).
+4. CALCULA: (kcal_por_100g × peso_en_g) / 100 para cada ingrediente.
+5. SUMA los resultados para obtener los totales del plato completo.
 
-Paso 1 — Describe brevemente lo que ves (ingredientes, porciones, método cocción).
-Paso 2 — Estima calorías y macros REALES basándote en esa descripción, NO valores por defecto.
+Ejemplo de razonamiento correcto:
+- Veo un filete de ternera de ~350g a la plancha → ternera plancha: 175kcal/100g → 175×350/100=612kcal, prot 27g/100g→94.5g, grasa 8g/100g→28g
+- Si también hay 200g de patatas fritas → 312kcal/100g → 312×200/100=624kcal, carbs 35g/100g→70g, grasa 17g/100g→34g
+- Total: 1236kcal, prot 94.5g, carbs 70g, grasa 62g
 
-Devuelve EXACTAMENTE este JSON (números enteros/decimales reales, no placeholder):
-{"nombre_plato":"string descriptivo del plato real","descripcion":"string con ingredientes y método de cocción","calorias":number,"proteina_g":number,"carbohidratos_g":number,"grasas_g":number,"fibra_g":number,"sodio_mg":number,"indice_saciedad":"bajo|medio|alto","valoracion":"excelente|bueno|aceptable|mejorable|malo","consejo":"string consejo personalizado para este plato específico","alertas":["string"],"alternativas_saludables":["string"]}`;
+Aplica ESTE MISMO PROCESO a la imagen adjunta. NUNCA uses valores de porción estándar si puedes estimar el peso real. SOLO devuelves JSON válido.`;
+    const msg = `Analiza esta imagen de comida aplicando tu proceso de 5 pasos.
+Devuelve ÚNICAMENTE este JSON con los valores calculados matemáticamente:
+{"nombre_plato":"nombre real del plato","descripcion":"ingredientes con pesos estimados y cálculo","calorias":number,"proteina_g":number,"carbohidratos_g":number,"grasas_g":number,"fibra_g":number,"sodio_mg":number,"indice_saciedad":"bajo|medio|alto","valoracion":"excelente|bueno|aceptable|mejorable|malo","consejo":"consejo específico para este plato","alertas":["string"],"alternativas_saludables":["string"]}`;
 
     try {
-      // temperature 0.2 para máxima precisión en análisis visual
-      const text = await callAI(sys, msg, imageBase64, imageMediaType, abortRef.current.signal, { temperature: 0.2, topP: 0.8 });
+      const text = await callAI(sys, msg, imageBase64, imageMediaType, abortRef.current.signal, { temperature: 0.1, topP: 0.8 });
       const json = parseAIJson(text, {
         nombre_plato: 'Plato analizado', calorias: 400, proteina_g: 25,
         carbohidratos_g: 40, grasas_g: 15, fibra_g: 5, sodio_mg: 400,
@@ -396,15 +405,28 @@ Devuelve EXACTAMENTE este JSON (números enteros/decimales reales, no placeholde
     setManualResult(null);
     if (abortRef.current) abortRef.current.abort();
     abortRef.current = new AbortController();
-    const sys = `Eres un nutricionista experto. Estimas macronutrientes de descripciones textuales con precisión. Tienes en cuenta la cantidad/gramos mencionados. Si no se indica cantidad, asumes una porción habitual española. Nunca uses valores genéricos: cada alimento tiene su propio perfil nutricional. SOLO devuelves JSON válido.`;
-    const msg = `Estima los macros de esta comida: "${manualText.slice(0, 500)}".
+    const sys = `Eres un nutricionista experto con acceso a las tablas nutricionales de la USDA y la BEDCA española.
+Tu proceso OBLIGATORIO es:
+1. EXTRAE cada alimento/ingrediente de la descripción con su peso/cantidad exacta.
+2. Si el usuario indica un peso (ej: "2kg", "500g", "1kg"), ÚSALO EXACTAMENTE — NUNCA lo ignores.
+3. BUSCA los valores por 100g de cada alimento en tu base de datos (datos reales, no inventados).
+4. CALCULA: (kcal_por_100g × gramos_reales) / 100 para cada ingrediente.
+5. SUMA todos los resultados → esos son los totales.
 
-Ten en cuenta: ingredientes específicos, método de cocción si se menciona, cantidades o porciones.
+EJEMPLO OBLIGATORIO de cómo razonar:
+- Input: "1 entrecot de 700g"
+- Entrecot/chuletón de vacuno (crudo, grasa moderada): ~270kcal/100g, prot 26g/100g, grasa 19g/100g, carbs 0g
+- Cálculo: kcal=270×700/100=1890 | prot=26×700/100=182g | grasa=19×700/100=133g | carbs=0g
+- Si fueran 2000g: kcal=5400, prot=520g, grasa=380g
 
-Devuelve EXACTAMENTE este JSON con valores reales calculados para ESTA comida:
-{"nombre_plato":"string","calorias":number,"proteina_g":number,"carbohidratos_g":number,"grasas_g":number,"fibra_g":number,"sodio_mg":number,"valoracion":"excelente|bueno|aceptable|mejorable|malo","consejo":"string personalizado","alertas":["string"]}`;
+NUNCA devuelvas kcal de porción estándar (200g) si el usuario dijo otro peso. SOLO JSON válido.`;
+    const msg = `Calcula los macros de: "${manualText.slice(0, 600)}"
+
+Aplica tu proceso de 5 pasos paso a paso. Muestra el cálculo en el campo "descripcion".
+Devuelve SOLO este JSON:
+{"nombre_plato":"string","descripcion":"cálculo detallado: alimento→kcal/100g→peso→total","calorias":number,"proteina_g":number,"carbohidratos_g":number,"grasas_g":number,"fibra_g":number,"sodio_mg":number,"valoracion":"excelente|bueno|aceptable|mejorable|malo","consejo":"string","alertas":["string"]}`;
     try {
-      const text = await callAI(sys, msg, null, 'image/jpeg', abortRef.current.signal);
+      const text = await callAI(sys, msg, null, 'image/jpeg', abortRef.current.signal, { temperature: 0.1 });
       const json = parseAIJson(text, {
         nombre_plato: manualText, calorias: 300, proteina_g: 20, carbohidratos_g: 30,
         grasas_g: 10, fibra_g: 3, sodio_mg: 300, valoracion: 'aceptable',
