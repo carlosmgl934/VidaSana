@@ -435,150 +435,27 @@ const IANutricional = () => {
     const carbsObj      = prof?.macros?.carbos   || Math.round((objetivoKcal * 0.40) / 4);
     const grasaObj      = prof?.macros?.grasa    || Math.round((objetivoKcal * 0.30) / 9);
 
-    const sys = `Eres un nutricionista deportivo experto con acceso a las bases de datos nutricionales USDA FoodData Central, BEDCA (Base de Datos Española de Composición de Alimentos) y CESNAF. Llevas 20 años analizando platos mediterráneos, españoles e internacionales.
+    const sys = `Eres nutricionista deportivo experto (USDA/BEDCA). Usuario: ${nombre}, ${edad}a, ${pesoActual}kg, objetivo ${objetivoKcal}kcal/día, lleva ${caloriasHoy}kcal hoy (quedan ${caloriasRest}kcal), macros: ${proteinaObj}g prot/${carbsObj}g carbs/${grasaObj}g grasa.
 
-DATOS DEL USUARIO (úsalos para personalizar el análisis):
-- Nombre: ${nombre}
-- Sexo: ${sexo}
-- Edad: ${edad} años
-- Peso actual: ${pesoActual}kg
-- Objetivo calórico diario: ${objetivoKcal} kcal
-- Calorías ya consumidas hoy: ${caloriasHoy} kcal
-- Calorías restantes para hoy: ${caloriasRest} kcal
-- Macros objetivo: ${proteinaObj}g proteína / ${carbsObj}g carbos / ${grasaObj}g grasa
+PROCESO (6 pasos obligatorios):
+1. IDENTIFICA cada alimento y método de cocción.
+2. ESTIMA peso en gramos con estas referencias:
+   Plato normal=400-600g total | Filete mediano=150-200g | Filete grande=250-350g | Pechuga pollo=180-220g | Entrecot mediano=200-280g | Entrecot grande=350-500g | Huevo L=60g | Patata mediana=150g | Ración arroz cocido=180-200g | Ración pasta cocida=200-280g | Loncha jamón=20-25g | Rebanada pan=30-40g | Cucharada aceite=10g(84kcal)${pesoAprox ? ` | ⚠️PESO CONFIRMADO=${pesoAprox}g` : ''}
+3. CONSULTA kcal/100g (estado cocinado):
+   Pollo plancha=165|31|3.6|0 | Pollo frito=269|27|17|3 | Ternera plancha=175|27|7|0 | Entrecot vacuno=270|26|19|0 | Cerdo plancha=185|29|7|0 | Hamburguesa=290|24|21|0 | Jamón serrano=241|30|13|0 | Chorizo=455|24|38|2 | Salmón plancha=208|20|13|0 | Merluza horno=86|17|1.5|0 | Atún lata=116|26|0.5|0 | Huevo frito=196|14|15|0 | Huevo cocido=155|13|11|1 | Tortilla española=218|9|13|16 | Arroz cocido=130|2.7|0.3|28 | Pasta cocida=158|5.8|0.9|31 | Patatas fritas caseras=312|3.4|15|41 | Patatas bolsa=536|7|35|49 | Patatas horno=93|2.5|0.1|21 | Pan blanco=265|9|3.2|49 | Tomate=18|0.9|0.2|3.9 | Pepino=15|0.7|0.1|3.1 | Lechuga=15|1.4|0.2|2.9 | Ensalada mixta=20|1|0.2|3.5 | Brócoli=35|2.4|0.4|7 | Lentejas=116|9|0.4|20 | Garbanzos=164|8.9|2.6|27 | Queso manchego=392|27|32|0.5 | Aceite oliva=884|0|100|0 | Pizza margarita=266|11|10|33 | Croquetas=260|8|15|24
+   (formato: alimento=kcal|prot|grasa|carbs)
+4. CALCULA: (kcal/100g × peso_g) / 100 para cada ingrediente. Incluye aceite si hay brillo/grasa visible.
+5. SUMA todos los ingredientes.
+6. EVALÚA si encaja en los ${caloriasRest}kcal restantes de ${nombre}.
 
-TU PROCESO OBLIGATORIO — EJECUTA ESTOS 6 PASOS EN ORDEN:
+EJEMPLOS:
+• Pechuga 200g+arroz 180g+ensalada 100g+aceite 10g → Pollo:165×200/100=330 | Arroz:130×180/100=234 | Ensalada:20 | Aceite:88 → TOTAL 672kcal|prot68g|carbs54g|grasa18g
+• Entrecot 400g+patatas fritas 200g → Entrecot:270×400/100=1080 | Patatas:312×200/100=624 → TOTAL 1704kcal|prot111g|carbs82g|grasa106g
 
-PASO 1 — IDENTIFICA: Lista cada alimento visible, su método de cocción y su estado (crudo/cocinado, con/sin piel, etc.)
+REGLAS: nunca porción genérica si puedes estimar visual | incluye aceite si hay brillo | frito si dorado/crujiente | empieza tu respuesta con { y termina con }`;
 
-PASO 2 — ESTIMA PESOS visualmente usando estas referencias de tamaño:
-  - Plato normal (26-28cm): capacidad ~400-600g de comida
-  - Plato hondo (22-24cm): capacidad ~300-450g
-  - Cuenco pequeño: ~200-300g
-  - Filete mediano (tarjeta de crédito de grosor): 150-200g
-  - Filete grande (palma de mano): 250-350g
-  - Pechuga de pollo entera: 180-220g
-  - Muslo de pollo con hueso: 150-200g
-  - Chuleta/entrecot mediano: 200-280g
-  - Chuleta/entrecot grande: 350-500g
-  - Huevo L: 60g (50g sin cáscara)
-  - Patata mediana: 150g | grande: 250g
-  - Puñado de pasta cocida: 180-220g | ración entera: 300-350g
-  - Ración de arroz cocido: 180-200g | grande: 280-320g
-  - Loncha de jamón: 20-25g | loncha gruesa: 35-45g
-  - Rebanada de pan de molde: 25-30g | barra normal: 30-40g
-  - Cucharada de aceite: 10g (84-90kcal, muy importante sumarlo)
-  - Hamburguesa restaurante: 150-200g solo la carne
-  - Pizza individual entera: 300-400g total
-  - Tazón de cereales seco: 40-50g
-  - Ración de legumbres cocidas: 200-250g
-${pesoAprox ? `  ⚠️ PESO CONFIRMADO POR EL USUARIO: ${pesoAprox}g — usa este dato como referencia absoluta y ajusta todos los cálculos proporcionalmente.` : ''}
-
-PASO 3 — CONSULTA valores nutricionales por 100g EN SU ESTADO REAL (cocinado, no crudo):
-  CARNES:
-  - Pollo a la plancha (pechuga sin piel): 165kcal | prot 31g | grasa 3.6g | carbs 0g
-  - Pollo frito con piel: 269kcal | prot 27g | grasa 17g | carbs 3g
-  - Ternera plancha magra (solomillo/lomo): 175kcal | prot 27g | grasa 7g | carbs 0g
-  - Entrecot/chuletón vacuno (grasa media): 270kcal | prot 26g | grasa 19g | carbs 0g
-  - Cerdo plancha (lomo): 185kcal | prot 29g | grasa 7g | carbs 0g
-  - Cerdo frito (costillas): 295kcal | prot 25g | grasa 22g | carbs 0g
-  - Cordero plancha: 260kcal | prot 24g | grasa 18g | carbs 0g
-  - Hamburguesa vacuno (80/20): 290kcal | prot 24g | grasa 21g | carbs 0g
-  - Jamón serrano: 241kcal | prot 30g | grasa 13g | carbs 0.3g
-  - Chorizo: 455kcal | prot 24g | grasa 38g | carbs 2g
-  PESCADOS:
-  - Salmón plancha: 208kcal | prot 20g | grasa 13g | carbs 0g
-  - Merluza al horno: 86kcal | prot 17g | grasa 1.5g | carbs 0g
-  - Atún fresco plancha: 184kcal | prot 30g | grasa 6g | carbs 0g
-  - Atún lata al natural: 116kcal | prot 26g | grasa 0.5g | carbs 0g
-  - Bacalao al horno: 105kcal | prot 23g | grasa 1g | carbs 0g
-  HUEVOS:
-  - Huevo frito (con aceite): 196kcal | prot 14g | grasa 15g | carbs 0.3g
-  - Huevo cocido/pasado: 155kcal | prot 13g | grasa 11g | carbs 1.1g
-  - Tortilla española (huevo+patata): 218kcal | prot 9g | grasa 13g | carbs 16g
-  HIDRATOS:
-  - Arroz blanco cocido: 130kcal | prot 2.7g | grasa 0.3g | carbs 28g
-  - Pasta cocida (macarrones/espaguetis): 158kcal | prot 5.8g | grasa 0.9g | carbs 31g
-  - Patatas fritas caseras: 312kcal | prot 3.4g | grasa 15g | carbs 41g
-  - Patatas fritas bolsa (Lay's estilo): 536kcal | prot 7g | grasa 35g | carbs 49g
-  - Patatas al horno: 93kcal | prot 2.5g | grasa 0.1g | carbs 21g
-  - Pan blanco: 265kcal | prot 9g | grasa 3.2g | carbs 49g
-  - Pan integral: 247kcal | prot 10g | grasa 3.4g | carbs 44g
-  VERDURAS Y LEGUMBRES:
-  - Ensalada mixta (lechuga+tomate+cebolla sin aliño): 20kcal | prot 1g | grasa 0.2g | carbs 3.5g
-  - Brócoli al vapor: 35kcal | prot 2.4g | grasa 0.4g | carbs 7g
-  - Lentejas cocidas: 116kcal | prot 9g | grasa 0.4g | carbs 20g
-  - Garbanzos cocidos: 164kcal | prot 8.9g | grasa 2.6g | carbs 27g
-  LÁCTEOS Y EXTRAS:
-  - Queso manchego curado: 392kcal | prot 27g | grasa 32g | carbs 0.5g
-  - Queso fresco: 98kcal | prot 12g | grasa 4g | carbs 4g
-  - Aceite de oliva: 884kcal | prot 0g | grasa 100g | carbs 0g (UNA cucharada=84kcal)
-  - Mantequilla: 717kcal | prot 0.9g | grasa 81g | carbs 0.1g
-  PLATOS ELABORADOS:
-  - Pizza margarita (base+tomate+queso): 266kcal | prot 11g | grasa 10g | carbs 33g
-  - Paella de marisco: 150kcal | prot 10g | grasa 4g | carbs 22g
-  - Croquetas (rebozadas y fritas): 260kcal | prot 8g | grasa 15g | carbs 24g
-
-PASO 4 — CALCULA para CADA ingrediente identificado:
-  kcal = (kcal_por_100g × peso_estimado_g) / 100
-  proteína_g = (prot_por_100g × peso_estimado_g) / 100
-  (aplica la misma fórmula para carbos, grasa y fibra)
-  ⚠️ Incluye el aceite de aliño/cocción si hay señales visuales de grasa o brillo.
-
-PASO 5 — SUMA todos los ingredientes para obtener totales del plato completo.
-
-PASO 6 — EVALÚA en contexto del usuario ${nombre}:
-  - Objetivo kcal diario: ${objetivoKcal} kcal | Ya lleva: ${caloriasHoy} kcal | Quedan: ${caloriasRest} kcal
-  - ¿Encaja este plato en lo que le queda del día?
-  - ¿Aporta suficiente proteína para sus ${proteinaObj}g objetivo?
-  - ¿Qué debería comer en la siguiente comida para completar el día?
-
-═══ EJEMPLOS DE RAZONAMIENTO CORRECTO ═══
-
-EJEMPLO 1 — Pechuga de pollo con arroz y ensalada:
-  Identifico: pechuga plancha ~200g + arroz cocido ~180g + ensalada ~100g + 1 cucharada aceite 10g
-  Cálculo:
-    Pollo: 165×200/100 = 330kcal | prot: 31×200/100=62g | grasa: 3.6×200/100=7.2g | carbs: 0
-    Arroz: 130×180/100 = 234kcal | prot: 2.7×180/100=4.9g | grasa: 0.3×180/100=0.5g | carbs: 28×180/100=50.4g
-    Ensalada: 20×100/100 = 20kcal | prot: 1g | grasa: 0.2g | carbs: 3.5g
-    Aceite: 884×10/100 = 88kcal | grasa: 10g
-  TOTAL: 672kcal | prot: 68g | carbs: 54g | grasa: 18g
-
-EJEMPLO 2 — Entrecot grande con patatas fritas:
-  Identifico: entrecot ~400g + patatas fritas caseras ~200g + sal/pimienta
-  Cálculo:
-    Entrecot: 270×400/100 = 1080kcal | prot: 26×400/100=104g | grasa: 19×400/100=76g | carbs: 0
-    Patatas fritas: 312×200/100 = 624kcal | prot: 3.4×200/100=6.8g | grasa: 15×200/100=30g | carbs: 41×200/100=82g
-    (aceite fritura ya incluido en valor "patatas fritas caseras")
-  TOTAL: 1704kcal | prot: 111g | carbs: 82g | grasa: 106g
-
-EJEMPLO 3 — Bocadillo de jamón serrano:
-  Identifico: barra de pan ~120g + jamón serrano ~60g
-  Cálculo:
-    Pan: 265×120/100 = 318kcal | prot: 9×120/100=10.8g | grasa: 3.2×120/100=3.8g | carbs: 49×120/100=58.8g
-    Jamón: 241×60/100 = 144.6kcal | prot: 30×60/100=18g | grasa: 13×60/100=7.8g | carbs: 0.3×60/100=0.18g
-  TOTAL: 463kcal | prot: 29g | carbs: 59g | grasa: 12g
-
-EJEMPLO 4 — Tortilla española de 3 huevos con patata:
-  Identifico: tortilla española ~300g (3 huevos + patata + aceite)
-  Valor de referencia: tortilla española = 218kcal/100g
-  Cálculo: 218×300/100 = 654kcal | prot: 9×300/100=27g | grasa: 13×300/100=39g | carbs: 16×300/100=48g
-
-EJEMPLO 5 — Pizza margarita individual:
-  Identifico: pizza entera individual ~350g
-  Cálculo: 266×350/100 = 931kcal | prot: 11×350/100=38.5g | grasa: 10×350/100=35g | carbs: 33×350/100=115.5g
-
-═══ REGLAS ABSOLUTAS ═══
-  - NUNCA uses valores de porción estándar genéricos si puedes estimar el peso visualmente
-  - Si hay aceite, salsa o aderezos visibles (brillantez, charco, goteo), inclúyelos siempre
-  - Si ves señales claras de fritura (dorado profundo, grasa visible, textura crujiente), aplica valores de "frito"
-  - Si hay duda entre dos alimentos similares, elige el de mayor valor calórico (más seguro)
-  - Indica en "confianza_estimacion": "alta" si el plato es claramente identificable, "media" si hay partes dudosas, "baja" si la imagen es confusa o el plato tiene ingredientes ocultos
-  - SOLO devuelves JSON válido, sin texto adicional, sin bloques markdown`;
-
-    const msg = `Analiza esta imagen de comida aplicando los 6 pasos obligatorios.
-Tu respuesta debe empezar DIRECTAMENTE con { y terminar con } — sin texto antes ni después, sin markdown.
-{"nombre_plato":"nombre específico del plato real","descripcion":"lista: ingrediente (Xg) → Ykcal/100g → Zkcal","proceso_calculo":"cálculo matemático completo","calorias":number,"proteina_g":number,"carbohidratos_g":number,"grasas_g":number,"fibra_g":number,"sodio_mg":number,"aceite_incluido":true|false,"confianza_estimacion":"alta|media|baja","indice_saciedad":"bajo|medio|alto","valoracion":"excelente|bueno|aceptable|mejorable|malo","valoracion_para_objetivo":"ideal|correcto|pasado|muy_pasado","calorias_restantes_despues":number,"consejo":"consejo para ${nombre}","que_comer_despues":"sugerencia próxima comida","alertas":["string"],"alternativas_saludables":["string"]}`;
+    const msg = `Analiza esta imagen. Responde SOLO con este JSON empezando con {:
+{"nombre_plato":"nombre real","descripcion":"ingrediente(Xg)→Ykcal/100g→Zkcal por cada uno","proceso_calculo":"suma total","calorias":number,"proteina_g":number,"carbohidratos_g":number,"grasas_g":number,"fibra_g":number,"sodio_mg":number,"aceite_incluido":true|false,"confianza_estimacion":"alta|media|baja","indice_saciedad":"bajo|medio|alto","valoracion":"excelente|bueno|aceptable|mejorable|malo","valoracion_para_objetivo":"ideal|correcto|pasado|muy_pasado","calorias_restantes_despues":number,"consejo":"consejo para ${nombre}","que_comer_despues":"próxima comida sugerida","alertas":["string"],"alternativas_saludables":["string"]}`;
 
     try {
       const text = await callAI(sys, msg, imageBase64, imageMediaType, abortRef.current.signal, { temperature: 0.1, topP: 0.8 });
