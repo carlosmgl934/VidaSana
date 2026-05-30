@@ -503,59 +503,36 @@ REGLAS: nunca porción genérica si puedes estimar visual | incluye aceite si ha
     const caloriasRestM = Math.max(0, objetivoM - caloriasHoyM);
     const protObjM      = prof?.macros?.proteina || Math.round((objetivoM * 0.30) / 4);
 
-    const sys = `Eres un nutricionista deportivo experto con acceso a la USDA FoodData Central y la BEDCA española.
+    const sys = `Nutricionista experto. Bases: USDA + BEDCA española.
 
-DATOS DEL USUARIO:
-- Nombre: ${nombreM}
-- Objetivo kcal diario: ${objetivoM} kcal
-- Calorías ya consumidas hoy: ${caloriasHoyM} kcal
-- Calorías restantes: ${caloriasRestM} kcal
-- Objetivo de proteína: ${protObjM}g
+USUARIO: ${nombreM} | Objetivo: ${objetivoM}kcal | Consumido: ${caloriasHoyM}kcal | Restante: ${caloriasRestM}kcal | Proteína objetivo: ${protObjM}g
 
-TU PROCESO OBLIGATORIO:
-1. EXTRAE cada alimento con su peso/cantidad exacta indicada por el usuario.
-2. Si se indica un peso ("400g", "2kg", "500g"), ÚSALO EXACTAMENTE — nunca lo cambies.
-3. CONSULTA los valores por 100g de cada alimento (usa datos reales de la USDA/BEDCA).
-4. CALCULA: (kcal_por_100g × gramos) / 100 para cada ingrediente.
-5. SUMA los totales.
-6. EVALÚA si encaja en el objetivo del usuario.
+PROCESO (obligatorio):
+1. Si el usuario da peso exacto → úsalo sin cambiar
+2. Si no → estima visualmente por tamaño del plato
+3. Calcula: (kcal/100g × gramos) / 100 por ingrediente
+4. Suma y evalúa vs objetivo del usuario
 
-VALORES DE REFERENCIA CLAVE (por 100g, en su estado indicado):
-- Tomate crudo: 18kcal | prot 0.9g | carbs 3.9g | grasa 0.2g
-- Pepino crudo: 15kcal | prot 0.7g | carbs 3.1g | grasa 0.1g
-- Lechuga: 15kcal | prot 1.4g | carbs 2.9g | grasa 0.2g
-- Zanahoria: 41kcal | prot 0.9g | carbs 10g | grasa 0.2g
-- Cebolla: 40kcal | prot 1.1g | carbs 9.3g | grasa 0.1g
-- Espinacas: 23kcal | prot 2.9g | carbs 3.6g | grasa 0.4g
-- Pollo plancha: 165kcal | prot 31g | grasa 3.6g | carbs 0g
-- Ternera plancha: 175kcal | prot 27g | grasa 7g | carbs 0g
-- Entrecot vacuno: 270kcal | prot 26g | grasa 19g | carbs 0g
-- Arroz cocido: 130kcal | prot 2.7g | carbs 28g | grasa 0.3g
-- Pasta cocida: 158kcal | prot 5.8g | carbs 31g | grasa 0.9g
-- Patatas fritas caseras: 312kcal | prot 3.4g | carbs 41g | grasa 15g
-- Aceite de oliva: 884kcal | grasa 100g (1 cucharada=10g=88kcal)
-- Pan blanco: 265kcal | prot 9g | carbs 49g | grasa 3.2g
-- Huevo frito: 196kcal | prot 14g | grasa 15g | carbs 0.3g
-- Salmón plancha: 208kcal | prot 20g | grasa 13g | carbs 0g
-- Merluza horno: 86kcal | prot 17g | grasa 1.5g | carbs 0g
+TABLA (por 100g, estado indicado):
+Verduras: tomate 18|0.9|3.9|0.2 · pepino 15|0.7|3.1|0.1 · lechuga 15|1.4|2.9|0.2 · zanahoria 41|0.9|10|0.2 · cebolla 40|1.1|9.3|0.1 · pimiento 31|1|6|0.3 · espinacas 23|2.9|3.6|0.4
+Proteínas: pollo plancha 165|31|0|3.6 · ternera plancha 175|27|0|7 · entrecot 270|26|0|19 · merluza horno 86|17|0|1.5 · atún natural 116|26|0|0.5 · huevo frito 196|14|0.3|15 · huevo cocido 155|13|1.1|11
+Carbos: arroz cocido 130|2.7|28|0.3 · pasta cocida 158|5.8|31|0.9 · pan blanco 265|9|49|3.2 · patata cocida 77|2|17|0.1 · patatas fritas 312|3.4|41|15
+Grasas: aceite oliva 884|0|0|100 (1cda=10g=88kcal) · queso manchego 392|27|0.5|32 · jamón serrano 241|30|0.3|13
+Formato tabla: kcal|prot|carbs|grasa
 
 EJEMPLOS:
-- "400g de ensalada de tomate y pepino":
-  Tomate 200g: 18×200/100=36kcal | Pepino 200g: 15×200/100=30kcal → TOTAL: 66kcal, prot 3.2g, carbs 14g, grasa 0.6g
-- "1 entrecot de 700g":
-  Entrecot: 270×700/100=1890kcal | prot: 26×700/100=182g → TOTAL: 1890kcal
-- "150g de arroz cocido con 200g de pollo":
-  Arroz: 130×150/100=195kcal | Pollo: 165×200/100=330kcal → TOTAL: 525kcal, prot 68g
+"400g ensalada tomate+pepino" → tomate 200g: 36kcal · pepino 200g: 30kcal → 66kcal, prot 3.2g
+"700g entrecot" → 270×7=1890kcal, prot 182g
+"150g arroz + 200g pollo plancha" → 195+330=525kcal, prot 66g
+"2 huevos fritos + pan" → 392kcal + 93kcal = 485kcal
+"ensalada mixta sin peso" → estima ~250g total → ~50kcal
 
-REGLAS ABSOLUTAS:
-- NUNCA uses porción estándar si el usuario dio un peso específico
-- Para verduras y ensaladas: los valores son BAJOS (15-40kcal/100g), no los infles
-- Tu respuesta debe empezar con { y terminar con } — CERO texto antes o después`;
+REGLAS: verduras son bajas (15-40kcal/100g) no las infles · aceite suma mucho aunque sea poco · respuesta SOLO JSON sin texto extra`;
 
-    const msg = `Calcula los macros de: "${manualText.slice(0, 600)}"
-
-Respuesta: empieza con { y termina con }. Sin texto, sin markdown.
-{"nombre_plato":"string","descripcion":"ingrediente (Xg): Ykcal/100g × X/100 = Zkcal — para cada uno","proceso_calculo":"suma total de todos los ingredientes","calorias":number,"proteina_g":number,"carbohidratos_g":number,"grasas_g":number,"fibra_g":number,"sodio_mg":number,"confianza_estimacion":"alta|media|baja","valoracion":"excelente|bueno|aceptable|mejorable|malo","valoracion_para_objetivo":"ideal|correcto|pasado|muy_pasado","calorias_restantes_despues":number,"consejo":"consejo personalizado","que_comer_despues":"siguiente comida sugerida","alertas":["string"]}`;
+    const msg = `Calcula: "${manualText.slice(0, 500)}"
+Solo JSON, empieza con { termina con }:
+{"nombre_plato":"str","descripcion":"ingrediente Xg=Ykcal por cada uno","calorias":n,"proteina_g":n,"carbohidratos_g":n,"grasas_g":n,"fibra_g":n,"sodio_mg":n,"confianza_estimacion":"alta|media|baja","valoracion":"excelente|bueno|aceptable|mejorable|malo","valoracion_para_objetivo":"ideal|correcto|pasado|muy_pasado","calorias_restantes_despues":n,"consejo":"str","que_comer_despues":"str","alertas":["str"]}`;
+    
     try {
       const text = await callAI(sys, msg, null, 'image/jpeg', abortRef.current.signal, { temperature: 0.1 });
       const json = parseAIJson(text, {
