@@ -366,11 +366,8 @@ const IANutricional = () => {
   const { state, dispatch } = useApp();
   const prof = state.profiles[state.perfil];
   const isMama = state.perfil === 'mama';
-  const [tab, setTab] = useState(isMama ? 'chat' : 'foto');
-  const [image, setImage] = useState(null);
-  const [imageBase64, setImageBase64] = useState(null);
-  const [imageMediaType, setImageMediaType] = useState('image/jpeg');
-  const [pesoAprox, setPesoAprox] = useState('');
+  const [tab, setTab] = useState(isMama ? 'chat' : 'gemini');
+  const [geminiText, setGeminiText] = useState('');
   const [analisisResult, setAnalisisResult] = useState(null);
   const [loadingAnalisis, setLoadingAnalisis] = useState(false);
   const [manualText, setManualText] = useState('');
@@ -390,40 +387,8 @@ const IANutricional = () => {
   const totalCarbs = comidas.reduce((a, c) => a + (Number(c.carbos) || 0), 0);
   const totalFat  = comidas.reduce((a, c) => a + (Number(c.grasa) || 0), 0);
 
-  const handleImageSelect = useCallback(async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    // Límite de tamaño: 10MB
-    if (file.size > 10 * 1024 * 1024) {
-      alert('La imagen es demasiado grande. Máximo 10MB.');
-      return;
-    }
-    const url = URL.createObjectURL(file);
-    setImage(url);
-    setImageMediaType(file.type || 'image/jpeg');
-    setAnalisisResult(null);
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const b64 = ev.target.result.split(',')[1];
-      if (!isValidBase64(b64)) {
-        alert('No se pudo procesar la imagen. Intenta con otra foto.');
-        return;
-      }
-      setImageBase64(b64);
-    };
-    reader.readAsDataURL(file);
-  }, []);
-
-  const analyzeImage = useCallback(async () => {
-    if (!imageBase64 || loadingAnalisis) return;
-    setLoadingAnalisis(true);
-    setAnalisisResult(null);
-    if (abortRef.current) abortRef.current.abort();
-    abortRef.current = new AbortController();
-
-    // ── Contexto del usuario para el prompt ──────────────────────
+  const handleCopyPrompt = useCallback(() => {
     const nombre        = prof?.nombre || 'Usuario';
-    const sexo          = prof?.sexo === 'mujer' ? 'mujer' : 'hombre';
     const edad          = prof?.fechaNacimiento ? calcAge(prof.fechaNacimiento) : (prof?.edad || '?');
     const pesoActual    = prof?.peso || '?';
     const tdee          = prof ? calcTDEE(prof) : 2000;
@@ -435,130 +400,56 @@ const IANutricional = () => {
     const carbsObj      = prof?.macros?.carbos   || Math.round((objetivoKcal * 0.40) / 4);
     const grasaObj      = prof?.macros?.grasa    || Math.round((objetivoKcal * 0.30) / 9);
 
-    const sys = `Eres nutricionista deportivo experto (USDA/BEDCA). Usuario: ${nombre}, ${edad}a, ${pesoActual}kg, objetivo ${objetivoKcal}kcal/día, lleva ${caloriasHoy}kcal hoy (quedan ${caloriasRest}kcal), macros: ${proteinaObj}g prot/${carbsObj}g carbs/${grasaObj}g grasa.
+    const promptText = `Eres nutricionista deportivo experto (USDA/BEDCA). 
+Usuario: ${nombre}, ${edad}a, ${pesoActual}kg, objetivo ${objetivoKcal}kcal/día, lleva ${caloriasHoy}kcal hoy (quedan ${caloriasRest}kcal), macros objetivo: ${proteinaObj}g prot / ${carbsObj}g carbs / ${grasaObj}g grasa.
 
-PROCESO (6 pasos obligatorios):
-1. IDENTIFICA cada alimento y método de cocción.
-2. ESTIMA peso en gramos con estas referencias:
-   Plato normal=400-600g total | Filete mediano=150-200g | Filete grande=250-350g | Pechuga pollo=180-220g | Entrecot mediano=200-280g | Entrecot grande=350-500g | Huevo L=60g | Patata mediana=150g | Ración arroz cocido=180-200g | Ración pasta cocida=200-280g | Loncha jamón=20-25g | Rebanada pan=30-40g | Cucharada aceite=10g(84kcal)${pesoAprox ? ` | ⚠️PESO CONFIRMADO=${pesoAprox}g` : ''}
-3. CONSULTA kcal/100g (estado cocinado):
-   Pollo plancha=165|31|3.6|0 | Pollo frito=269|27|17|3 | Ternera plancha=175|27|7|0 | Entrecot vacuno=270|26|19|0 | Cerdo plancha=185|29|7|0 | Hamburguesa=290|24|21|0 | Jamón serrano=241|30|13|0 | Chorizo=455|24|38|2 | Salmón plancha=208|20|13|0 | Merluza horno=86|17|1.5|0 | Atún lata=116|26|0.5|0 | Huevo frito=196|14|15|0 | Huevo cocido=155|13|11|1 | Tortilla española=218|9|13|16 | Arroz cocido=130|2.7|0.3|28 | Pasta cocida=158|5.8|0.9|31 | Patatas fritas caseras=312|3.4|15|41 | Patatas bolsa=536|7|35|49 | Patatas horno=93|2.5|0.1|21 | Pan blanco=265|9|3.2|49 | Tomate=18|0.9|0.2|3.9 | Pepino=15|0.7|0.1|3.1 | Lechuga=15|1.4|0.2|2.9 | Ensalada mixta=20|1|0.2|3.5 | Brócoli=35|2.4|0.4|7 | Lentejas=116|9|0.4|20 | Garbanzos=164|8.9|2.6|27 | Queso manchego=392|27|32|0.5 | Aceite oliva=884|0|100|0 | Pizza margarita=266|11|10|33 | Croquetas=260|8|15|24
-   (formato: alimento=kcal|prot|grasa|carbs)
-4. CALCULA: (kcal/100g × peso_g) / 100 para cada ingrediente. Incluye aceite si hay brillo/grasa visible.
-5. SUMA todos los ingredientes.
-6. EVALÚA si encaja en los ${caloriasRest}kcal restantes de ${nombre}.
-
-EJEMPLOS:
-• Pechuga 200g+arroz 180g+ensalada 100g+aceite 10g → Pollo:165×200/100=330 | Arroz:130×180/100=234 | Ensalada:20 | Aceite:88 → TOTAL 672kcal|prot68g|carbs54g|grasa18g
-• Entrecot 400g+patatas fritas 200g → Entrecot:270×400/100=1080 | Patatas:312×200/100=624 → TOTAL 1704kcal|prot111g|carbs82g|grasa106g
-
-REGLAS: nunca porción genérica si puedes estimar visual | incluye aceite si hay brillo | frito si dorado/crujiente | empieza tu respuesta con { y termina con }`;
-
-    const msg = `Analiza esta imagen. Responde SOLO con este JSON empezando con {:
-{"nombre_plato":"nombre real","descripcion":"ingrediente(Xg)→Ykcal/100g→Zkcal por cada uno","proceso_calculo":"suma total","calorias":number,"proteina_g":number,"carbohidratos_g":number,"grasas_g":number,"fibra_g":number,"sodio_mg":number,"aceite_incluido":true|false,"confianza_estimacion":"alta|media|baja","indice_saciedad":"bajo|medio|alto","valoracion":"excelente|bueno|aceptable|mejorable|malo","valoracion_para_objetivo":"ideal|correcto|pasado|muy_pasado","calorias_restantes_despues":number,"consejo":"consejo para ${nombre}","que_comer_despues":"próxima comida sugerida","alertas":["string"],"alternativas_saludables":["string"]}`;
-
-    try {
-      const text = await callAI(sys, msg, imageBase64, imageMediaType, abortRef.current.signal, { temperature: 0.1, topP: 0.8 });
-      const json = parseAIJson(text, {
-        nombre_plato: 'Plato analizado', calorias: 0, proteina_g: 0,
-        carbohidratos_g: 0, grasas_g: 0, fibra_g: 0, sodio_mg: 0,
-        indice_saciedad: 'medio', valoracion: 'aceptable',
-        aceite_incluido: false, confianza_estimacion: 'baja',
-        valoracion_para_objetivo: 'correcto', calorias_restantes_despues: caloriasRest,
-        consejo: 'No se pudo analizar correctamente la imagen.',
-        que_comer_despues: '', proceso_calculo: '',
-        alertas: ['El análisis de imagen falló. Prueba con la pestaña ✍️ IA (texto manual).'],
-        alternativas_saludables: []
-      });
-      setAnalisisResult(json);
-      if (!isMama) {
-        dispatch({ type: 'ADD_FOTO_HISTORIAL', payload: { ...json, fecha: todayKey } });
-      }
-    } catch (e) {
-      if (e.name !== 'AbortError') {
-        setAnalisisResult({
-          nombre_plato: 'Error al analizar',
-          calorias: 0, proteina_g: 0, carbohidratos_g: 0, grasas_g: 0,
-          fibra_g: 0, sodio_mg: 0, indice_saciedad: 'medio', valoracion: 'aceptable',
-          consejo: e.message || 'No se pudo analizar la imagen.',
-          alertas: [], alternativas_saludables: []
-        });
-      }
-    }
-    setLoadingAnalisis(false);
-  }, [imageBase64, imageMediaType, pesoAprox, loadingAnalisis, isMama, todayKey, dispatch]);
-
-  const analyzeManual = useCallback(async () => {
-    if (!manualText || loadingManual) return;
-    setLoadingManual(true);
-    setManualResult(null);
-    if (abortRef.current) abortRef.current.abort();
-    abortRef.current = new AbortController();
-    // Contexto del usuario (mismo que analyzeImage)
-    const nombreM       = prof?.nombre || 'Usuario';
-    const tdeeM         = prof ? calcTDEE(prof) : 2000;
-    const deficitM      = prof?.deficit || 0;
-    const objetivoM     = prof?.calorias_objetivo || (tdeeM - deficitM);
-    const caloriasHoyM  = totalCal;
-    const caloriasRestM = Math.max(0, objetivoM - caloriasHoyM);
-    const protObjM      = prof?.macros?.proteina || Math.round((objetivoM * 0.30) / 4);
-
-    const sys = `Nutricionista experto. Bases: USDA + BEDCA española.
-
-USUARIO: ${nombreM} | Objetivo: ${objetivoM}kcal | Consumido: ${caloriasHoyM}kcal | Restante: ${caloriasRestM}kcal | Proteína objetivo: ${protObjM}g
-
+Por favor, analiza la comida que te describo o la foto que te adjunto. 
 PROCESO (obligatorio):
-1. Si el usuario da peso exacto → úsalo sin cambiar
-2. Si no → estima visualmente por tamaño del plato
-3. Calcula: (kcal/100g × gramos) / 100 por ingrediente
-4. Suma y evalúa vs objetivo del usuario
+1. IDENTIFICA cada alimento.
+2. ESTIMA peso en gramos (usa referencias estándar si no doy peso exacto).
+3. CONSULTA kcal/100g.
+4. CALCULA para cada ingrediente y súmalo todo. Incluye aceite si hay brillo/grasa.
 
-TABLA (por 100g, estado indicado):
-Verduras: tomate 18|0.9|3.9|0.2 · pepino 15|0.7|3.1|0.1 · lechuga 15|1.4|2.9|0.2 · zanahoria 41|0.9|10|0.2 · cebolla 40|1.1|9.3|0.1 · pimiento 31|1|6|0.3 · espinacas 23|2.9|3.6|0.4
-Proteínas: pollo plancha 165|31|0|3.6 · ternera plancha 175|27|0|7 · entrecot 270|26|0|19 · merluza horno 86|17|0|1.5 · atún natural 116|26|0|0.5 · huevo frito 196|14|0.3|15 · huevo cocido 155|13|1.1|11
-Carbos: arroz cocido 130|2.7|28|0.3 · pasta cocida 158|5.8|31|0.9 · pan blanco 265|9|49|3.2 · patata cocida 77|2|17|0.1 · patatas fritas 312|3.4|41|15
-Grasas: aceite oliva 884|0|0|100 (1cda=10g=88kcal) · queso manchego 392|27|0.5|32 · jamón serrano 241|30|0.3|13
-Formato tabla: kcal|prot|carbs|grasa
-
-EJEMPLOS:
-"400g ensalada tomate+pepino" → tomate 200g: 36kcal · pepino 200g: 30kcal → 66kcal, prot 3.2g
-"700g entrecot" → 270×7=1890kcal, prot 182g
-"150g arroz + 200g pollo plancha" → 195+330=525kcal, prot 66g
-"2 huevos fritos + pan" → 392kcal + 93kcal = 485kcal
-"ensalada mixta sin peso" → estima ~250g total → ~50kcal
-
-REGLAS: verduras son bajas (15-40kcal/100g) no las infles · aceite suma mucho aunque sea poco · respuesta SOLO JSON sin texto extra`;
-
-    const msg = `Calcula: "${manualText.slice(0, 500)}"
-Solo JSON, empieza con { termina con }:
-{"nombre_plato":"str","descripcion":"ingrediente Xg=Ykcal por cada uno","calorias":n,"proteina_g":n,"carbohidratos_g":n,"grasas_g":n,"fibra_g":n,"sodio_mg":n,"confianza_estimacion":"alta|media|baja","valoracion":"excelente|bueno|aceptable|mejorable|malo","valoracion_para_objetivo":"ideal|correcto|pasado|muy_pasado","calorias_restantes_despues":n,"consejo":"str","que_comer_despues":"str","alertas":["str"]}`;
+Responde SOLO con este JSON (sin formato Markdown, sin texto adicional, empieza con { y termina con }):
+{
+  "nombre_plato":"nombre real",
+  "descripcion":"ingrediente(Xg)→Ykcal/100g→Zkcal por cada uno",
+  "calorias":0,
+  "proteina_g":0,
+  "carbohidratos_g":0,
+  "grasas_g":0,
+  "fibra_g":0,
+  "sodio_mg":0,
+  "aceite_incluido":true,
+  "confianza_estimacion":"alta|media|baja",
+  "valoracion":"excelente|bueno|aceptable|mejorable|malo",
+  "valoracion_para_objetivo":"ideal|correcto|pasado|muy_pasado",
+  "calorias_restantes_despues":0,
+  "consejo":"consejo para ${nombre}"
+}`;
     
+    navigator.clipboard.writeText(promptText).then(() => {
+      alert('¡Prompt copiado al portapapeles! Ahora pégalo en la web de Gemini y añade tu foto o descripción.');
+    });
+  }, [prof, totalCal]);
+
+  const handleParseGemini = useCallback(() => {
+    if (!geminiText.trim()) return;
     try {
-      const text = await callAI(sys, msg, null, 'image/jpeg', abortRef.current.signal, { temperature: 0.1 });
-      const json = parseAIJson(text, {
-        nombre_plato: manualText, calorias: 0, proteina_g: 0, carbohidratos_g: 0,
+      const parsed = parseAIJson(geminiText, {
+        nombre_plato: 'Plato (pegado)', calorias: 0, proteina_g: 0, carbohidratos_g: 0,
         grasas_g: 0, fibra_g: 0, sodio_mg: 0, valoracion: 'aceptable',
         confianza_estimacion: 'baja', valoracion_para_objetivo: 'correcto',
-        calorias_restantes_despues: caloriasRestM,
-        consejo: 'No se pudo calcular. Inténtalo de nuevo o describe el plato con más detalle.',
-        que_comer_despues: '', proceso_calculo: '', alertas: ['Error al procesar la respuesta de la IA.']
+        calorias_restantes_despues: prof?.calorias_objetivo || 2000,
+        consejo: 'Calculado desde Gemini Web.',
+        que_comer_despues: '', proceso_calculo: '', alertas: []
       });
-      setManualResult(json);
+      setAnalisisResult(parsed);
+      setGeminiText('');
     } catch (e) {
-      if (e.name !== 'AbortError') {
-        setManualResult({
-          nombre_plato: manualText,
-          calorias: 0, proteina_g: 0, carbohidratos_g: 0, grasas_g: 0, fibra_g: 0, sodio_mg: 0,
-          valoracion: 'aceptable', confianza_estimacion: 'baja',
-          valoracion_para_objetivo: 'correcto', calorias_restantes_despues: caloriasRestM,
-          consejo: `Error IA: ${e.message}`,
-          que_comer_despues: '', proceso_calculo: '',
-          alertas: [`Error: ${e.message}`]
-        });
-      }
+      alert(`No se pudo leer el formato JSON de Gemini. Asegúrate de copiarlo entero desde el { hasta el }. Error: ${e.message}`);
     }
-    setLoadingManual(false);
-  }, [manualText, loadingManual, prof, totalCal]);
+  }, [geminiText, prof]);
 
   const addToLog = useCallback((result) => {
     if (!result) return;
@@ -636,84 +527,43 @@ Solo JSON, empieza con { termina con }:
 
       {!isMama && (
         <div className="tab-bar">
-          {[['calcular','🧮 Calcular'],['foto','📸 Foto'],['manual','✍️ IA'],['resumen','📊 Resumen']].map(([t, l]) => (
+          {[['gemini','✍️ IA'],['calcular','🧮 Calculadora'],['resumen','📊 Resumen']].map(([t, l]) => (
             <button key={t} className={`tab-item ${tab === t ? 'active' : ''}`} onClick={() => setTab(t)}>{l}</button>
           ))}
         </div>
       )}
 
-      {/* FOTO */}
-      {tab === 'foto' && (
+      {/* GEMINI WEB */}
+      {tab === 'gemini' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <label style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            background: image ? 'transparent' : '#0f172a',
-            border: `2px dashed ${image ? '#10b981' : '#334155'}`,
-            borderRadius: 16, padding: image ? 0 : 40, cursor: 'pointer', overflow: 'hidden',
-            minHeight: 180, transition: 'all 0.3s'
-          }}>
-            {image ? (
-              <img src={image} alt="Comida" style={{ width: '100%', borderRadius: 14, maxHeight: 250, objectFit: 'cover' }} />
-            ) : (
-              <>
-                <div style={{ fontSize: 48 }}>📸</div>
-                <div style={{ marginTop: 8, fontWeight: 600 }}>Toca para seleccionar imagen</div>
-                <div style={{ fontSize: 12, color: '#475569', marginTop: 4 }}>Foto de la cámara o galería</div>
-              </>
-            )}
-            <input type="file" accept="image/*" style={{ display: 'none' }}
-              onChange={handleImageSelect} capture="environment" />
-          </label>
-          {image && (
-            <>
-              <div>
-                <label style={{ fontSize: 12, color: '#64748b', display: 'block', marginBottom: 6 }}>Peso aproximado (gramos) — opcional</label>
-                <input className="input-field" type="number" inputMode="numeric" placeholder="200"
-                  value={pesoAprox} onChange={e => setPesoAprox(e.target.value)} />
-              </div>
-              <button className="btn-primary" onClick={analyzeImage} disabled={loadingAnalisis || !imageBase64}
-                style={{ background: loadingAnalisis ? '#334155' : 'linear-gradient(135deg,#6366f1,#4f46e5)', color: 'white', border: 'none', borderRadius: 12, padding: 14, fontSize: 16, fontWeight: 600, cursor: loadingAnalisis ? 'not-allowed' : 'pointer' }}>
-                {loadingAnalisis ? '🔍 Analizando...' : '🔍 Analizar con IA'}
-              </button>
-            </>
-          )}
-          {loadingAnalisis && <AICard loading />}
-          <MacroResult result={analisisResult} onAddToLog={() => addToLog(analisisResult)} />
-          {fotoHistorial.length > 0 && (
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>📸 Últimos análisis</div>
-              <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 8 }}>
-                {fotoHistorial.slice(0, 5).map((h, i) => (
-                  <div key={i} className="card" style={{ minWidth: 120, textAlign: 'center', cursor: 'pointer' }}
-                    onClick={() => setAnalisisResult(h)}>
-                    <div style={{ fontSize: 11, color: '#64748b' }}>{formatDate(h.fecha)}</div>
-                    <div style={{ fontSize: 13, fontWeight: 600, marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.nombre_plato}</div>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: '#10b981', marginTop: 4 }}>{h.calorias} kcal</div>
-                  </div>
-                ))}
-              </div>
+          <div className="card" style={{ background: 'linear-gradient(135deg,rgba(99,102,241,0.1),rgba(79,70,229,0.05))', border: '1px solid rgba(99,102,241,0.2)' }}>
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>1. Pídele a Gemini</div>
+            <div style={{ fontSize: 13, color: '#64748b', marginBottom: 12 }}>
+              Copia este prompt automático, pégalo en la app de Gemini y envíale la foto de tu comida.
             </div>
-          )}
-        </div>
-      )}
-
-      {/* MANUAL */}
-      {tab === 'manual' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div>
-            <label style={{ fontSize: 12, color: '#64748b', display: 'block', marginBottom: 8 }}>
-              ¿Qué comiste? Descríbelo con detalle
-            </label>
-            <textarea className="input-field" rows={4} style={{ resize: 'none' }}
-              placeholder="ej: 150g pechuga de pollo a la plancha, 100g arroz cocido, ensalada de lechuga y tomate con aceite de oliva"
-              value={manualText} onChange={e => setManualText(e.target.value.slice(0, 500))} />
+            <button className="btn-primary" onClick={handleCopyPrompt}
+              style={{ width: '100%', background: '#6366f1', color: 'white', border: 'none', borderRadius: 12, padding: 14, fontSize: 15, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              📋 Copiar Prompt para Gemini
+            </button>
           </div>
-          <button className="btn-primary" onClick={analyzeManual} disabled={loadingManual || !manualText}
-            style={{ background: loadingManual || !manualText ? '#334155' : 'linear-gradient(135deg,#6366f1,#4f46e5)', color: 'white', border: 'none', borderRadius: 12, padding: 14, fontSize: 16, fontWeight: 600, cursor: 'pointer' }}>
-            {loadingManual ? '⏳ Estimando...' : '🧮 Estimar macros'}
-          </button>
-          {loadingManual && <AICard loading />}
-          <MacroResult result={manualResult} onAddToLog={() => addToLog(manualResult)} />
+
+          <div className="card">
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>2. Pega su respuesta</div>
+            <div style={{ fontSize: 13, color: '#64748b', marginBottom: 12 }}>
+              Copia la tabla de código JSON que te devuelva Gemini y pégala aquí:
+            </div>
+            <textarea className="input-field" rows={5} style={{ resize: 'vertical', fontFamily: 'monospace', fontSize: 12 }}
+              placeholder='{ "nombre_plato": "...", "calorias": 350, ... }'
+              value={geminiText} onChange={e => setGeminiText(e.target.value)} />
+            
+            <button className="btn-primary" onClick={handleParseGemini} disabled={!geminiText.trim()}
+              style={{ width: '100%', marginTop: 12, background: !geminiText.trim() ? '#334155' : '#10b981', color: 'white', border: 'none', borderRadius: 12, padding: 14, fontSize: 15, fontWeight: 600, cursor: !geminiText.trim() ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              ✨ Procesar Datos
+            </button>
+          </div>
+
+          {/* Resultado del parseo de Gemini */}
+          <MacroResult result={analisisResult} onAddToLog={() => addToLog(analisisResult)} />
         </div>
       )}
 
