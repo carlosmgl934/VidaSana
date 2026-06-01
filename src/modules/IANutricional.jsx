@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { useApp } from '../context.jsx';
-import { callAI, parseAIJson, isValidBase64, limitForPrompt } from '../utils/api.js';
+import { callAI, parseAIJson, limitForPrompt } from '../utils/api.js';
 import { today, formatDate } from '../utils/dates.js';
 import { calcTDEE, calcIMC, calcAge } from '../utils/calculations.js';
 import DonutChart from '../components/DonutChart.jsx';
@@ -63,7 +63,12 @@ const MacroResult = React.memo(({ result, onAddToLog }) => {
 
       {/* Calorías grandes */}
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 42, fontWeight: 800, color: '#10b981', lineHeight: 1 }}>{result.calorias}</div>
+        <div style={{
+          fontSize: 42, fontWeight: 800, lineHeight: 1,
+          color: (result.calorias_restantes_despues < 0) ? '#ef4444' : (result.calorias_restantes_despues < 200 ? '#f59e0b' : '#10b981')
+        }}>
+          {result.calorias}
+        </div>
         <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>kcal</div>
       </div>
 
@@ -368,11 +373,8 @@ const IANutricional = () => {
   const isMama = state.perfil === 'mama';
   const [tab, setTab] = useState(isMama ? 'chat' : 'gemini');
   const [geminiText, setGeminiText] = useState('');
+  const [copied, setCopied] = useState(false);
   const [analisisResult, setAnalisisResult] = useState(null);
-  const [loadingAnalisis, setLoadingAnalisis] = useState(false);
-  const [manualText, setManualText] = useState('');
-  const [manualResult, setManualResult] = useState(null);
-  const [loadingManual, setLoadingManual] = useState(false);
   const [dayAnalysis, setDayAnalysis] = useState(null);
   const [loadingDay, setLoadingDay] = useState(false);
   const [chatInput, setChatInput] = useState('');
@@ -429,7 +431,8 @@ Responde SOLO con este JSON (sin formato Markdown, sin texto adicional, empieza 
 }`;
     
     navigator.clipboard.writeText(promptText).then(() => {
-      alert('¡Prompt copiado al portapapeles! Ahora pégalo en la web de Gemini y añade tu foto o descripción.');
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     });
   }, [prof, totalCal]);
 
@@ -542,8 +545,8 @@ Responde SOLO con este JSON (sin formato Markdown, sin texto adicional, empieza 
               Copia este prompt automático, pégalo en la app de Gemini y envíale la foto de tu comida.
             </div>
             <button className="btn-primary" onClick={handleCopyPrompt}
-              style={{ width: '100%', background: '#6366f1', color: 'white', border: 'none', borderRadius: 12, padding: 14, fontSize: 15, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              📋 Copiar Prompt para Gemini
+              style={{ width: '100%', background: copied ? '#10b981' : '#6366f1', color: 'white', border: 'none', borderRadius: 12, padding: 14, fontSize: 15, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 0.3s' }}>
+              {copied ? '✅ ¡Copiado!' : '📋 Copiar Prompt para Gemini'}
             </button>
           </div>
 
@@ -552,9 +555,12 @@ Responde SOLO con este JSON (sin formato Markdown, sin texto adicional, empieza 
             <div style={{ fontSize: 13, color: '#64748b', marginBottom: 12 }}>
               Copia la tabla de código JSON que te devuelva Gemini y pégala aquí:
             </div>
-            <textarea className="input-field" rows={5} style={{ resize: 'vertical', fontFamily: 'monospace', fontSize: 12 }}
+            <textarea className="input-field" rows={5} style={{ resize: 'vertical', fontFamily: 'monospace', fontSize: 12, minHeight: 120 }}
               placeholder='{ "nombre_plato": "...", "calorias": 350, ... }'
-              value={geminiText} onChange={e => setGeminiText(e.target.value)} />
+              value={geminiText} onChange={e => {
+                setGeminiText(e.target.value);
+                if (!e.target.value.trim()) setAnalisisResult(null);
+              }} />
             
             <button className="btn-primary" onClick={handleParseGemini} disabled={!geminiText.trim()}
               style={{ width: '100%', marginTop: 12, background: !geminiText.trim() ? '#334155' : '#10b981', color: 'white', border: 'none', borderRadius: 12, padding: 14, fontSize: 15, fontWeight: 600, cursor: !geminiText.trim() ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>

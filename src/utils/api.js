@@ -189,50 +189,76 @@ export const callAI = callAIGemini;
 //  Utilidades compartidas
 // ════════════════════════════════════════════════════════════
 
-/**
- * Parsea JSON de una respuesta de IA de forma segura.
- * Estrategias en orden:
- *  1. Parse directo (Gemini obedeció y devolvió solo JSON)
- *  2. Extracción de bloque markdown ```json ... ```
- *  3. Brace-counting: encuentra el objeto JSON aunque haya texto antes/después
- *     (resistente a respuestas como "Esta ensalada es baja en calorías. {...}")
- */
 export const parseAIJson = (text, fallback = {}) => {
   if (!text || typeof text !== 'string') return fallback;
 
-  // 1 — Intento directo
-  try { return JSON.parse(text.trim()); } catch {}
+  // Normalizar comillas tipográficas y saltos de línea molestos
+  let cleanText = text
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/\n/g, ' ')
+    .trim();
 
-  // 2 — Bloque markdown
-  const mdMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (mdMatch) {
-    try { return JSON.parse(mdMatch[1].trim()); } catch {}
+  let parsed = null;
+
+  // 1 — Intento directo
+  try {
+    parsed = JSON.parse(cleanText);
+  } catch {}
+
+  // 2 — Bloque markdown o regex extrayendo desde { hasta }
+  if (!parsed) {
+    const match = cleanText.match(/\{[\s\S]*\}/);
+    if (match) {
+      try {
+        parsed = JSON.parse(match[0]);
+      } catch {}
+    }
   }
 
-  // 3 — Brace-counting: busca el primer { y encuentra el } de cierre correcto
-  //     (no se confunde con } dentro de strings ni con llaves anidadas)
-  const start = text.indexOf('{');
-  if (start !== -1) {
-    let depth = 0, inString = false, escaped = false;
-    for (let i = start; i < text.length; i++) {
-      const ch = text[i];
-      if (escaped)              { escaped = false; continue; }
-      if (ch === '\\' && inString) { escaped = true;  continue; }
-      if (ch === '"')           { inString = !inString; continue; }
-      if (inString)             continue;
-      if (ch === '{')           depth++;
-      else if (ch === '}') {
-        depth--;
-        if (depth === 0) {
-          try { return JSON.parse(text.slice(start, i + 1)); } catch {}
-          break; // JSON malformado aunque encontramos el cierre
+  // 3 — Brace-counting (por si hay basura antes/después del JSON que el regex engloba mal)
+  if (!parsed) {
+    const start = cleanText.indexOf('{');
+    if (start !== -1) {
+      let depth = 0, inString = false, escaped = false;
+      for (let i = start; i < cleanText.length; i++) {
+        const ch = cleanText[i];
+        if (escaped) { escaped = false; continue; }
+        if (ch === '\\' && inString) { escaped = true; continue; }
+        if (ch === '"') { inString = !inString; continue; }
+        if (inString) continue;
+        if (ch === '{') depth++;
+        else if (ch === '}') {
+          depth--;
+          if (depth === 0) {
+            try { parsed = JSON.parse(cleanText.slice(start, i + 1)); } catch {}
+            break;
+          }
         }
       }
     }
   }
 
-  console.warn('[VidaSana] parseAIJson falló. Primeros 300 chars de respuesta:', text?.slice(0, 300));
-  return fallback;
+  if (!parsed) {
+    throw new Error('No se encontró un bloque JSON válido en la respuesta.');
+  }
+
+  // Castear los tipos usando el fallback como esquema
+  const result = { ...fallback };
+  for (const key in parsed) {
+    const val = parsed[key];
+    const fallbackType = typeof fallback[key];
+
+    if (fallbackType === 'number') {
+      result[key] = Number(val) || 0;
+    } else if (Array.isArray(fallback[key])) {
+      result[key] = Array.isArray(val) ? val : (typeof val === 'string' ? [val] : fallback[key]);
+    } else {
+      result[key] = val !== null && val !== undefined ? val : fallback[key];
+    }
+  }
+
+  return result;
 };
 
 /**
