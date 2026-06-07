@@ -68,9 +68,6 @@ const Onboarding = () => {
   });
 
   const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
-  const [analisis, setAnalisis] = useState(null);
-  const abortRef = useRef(null);
 
   const updateForm = useCallback((k, v) => setForm(f => ({ ...f, [k]: v })), []);
 
@@ -92,97 +89,45 @@ const Onboarding = () => {
     dispatch({ type: 'LOAD_STATE', payload: { ...state, perfilSeleccionado: false } });
   }, [state, dispatch]);
 
-  const generateAnalisis = async (formData) => {
-    setLoading(true);
-    abortRef.current = new AbortController();
-    const tdee = calcTDEE(formData);
-    const deficit = calcDeficit(Number(formData.peso), Number(formData.pesoMeta));
-    const objetivo = Math.max(tdee - deficit, 1200);
-    const macros = calcMacros(formData.peso, objetivo);
-    const imc = calcIMC(Number(formData.peso), Number(formData.altura));
-    const edad = calcAge(formData.fechaNacimiento);
+  const handleNext = async () => {
+    if (step < totalSteps - 1) {
+      setStep(s => s + 1);
+      return;
+    }
 
-    const sys = `Eres un nutricionista y entrenador personal experto. Respondes siempre en español, con tono cálido, motivador y profesional. Usas emojis con moderación.`;
-    const msg = `Genera un Análisis Inicial Personalizado para ${formData.nombre}, ${edad} años, ${formData.sexo}.
-Datos: Peso ${formData.peso}kg, Altura ${formData.altura}cm, IMC ${imc}, Grasa ${formData.porcGrasa || 'no indicada'}%
-Objetivo: bajar a ${formData.pesoMeta}kg. TDEE: ${tdee} kcal, Déficit: ${deficit} kcal, Objetivo: ${objetivo} kcal.
-Macros: Proteína ${macros.proteina}g, Carbos ${macros.carbos}g, Grasa ${macros.grasa}g.
-Incluye: diagnóstico IMC, calorías objetivo, pérdida semanal realista, fecha estimada, plan de macros, mensaje motivador.
-Máximo 280 palabras. Usa saltos de línea entre secciones.`;
+    // Último paso: calcular todo y guardar INMEDIATAMENTE sin esperar IA
+    const tdee = calcTDEE(form);
+    const deficit = calcDeficit(Number(form.peso), Number(form.pesoMeta));
+    const objetivo = Math.max(tdee - deficit, 1200);
+    const macros = calcMacros(form.peso, objetivo);
+    const imc = calcIMC(Number(form.peso), Number(form.altura));
+    const edad = calcAge(form.fechaNacimiento);
+
+    const fallback = `¡Hola ${form.nombre}! 🎉\n\nIMC: ${imc} — objetivo calórico diario: ~${objetivo} kcal (déficit ${deficit} kcal).\n\nMacros sugeridos: ${macros.proteina}g proteína | ${macros.carbos}g carbos | ${macros.grasa}g grasa\n\n¡Tú puedes lograrlo! 💪`;
 
     const payload = {
-      ...formData,
+      ...form,
       calorias_objetivo: objetivo,
       deficit,
       macros,
       imc: String(imc),
-      onboardingCompleto: true
+      onboardingCompleto: true,
+      analisisInicial: fallback   // primero guardamos el fallback
     };
 
-    try {
-      const text = await callAI(sys, msg, null, 'image/jpeg', abortRef.current.signal);
-      setAnalisis(text);
-      dispatch({ type: 'COMPLETE_ONBOARDING', payload: { ...payload, analisisInicial: text } });
-    } catch (e) {
-      if (e.name === 'AbortError') return;
-      const fallback = `¡Hola ${formData.nombre}! 🎉\n\nIMC: ${imc} — objetivo calórico diario: ~${objetivo} kcal (déficit ${deficit} kcal).\n\nMacros sugeridos: ${macros.proteina}g proteína | ${macros.carbos}g carbos | ${macros.grasa}g grasa\n\n¡Tú puedes lograrlo! 💪`;
-      setAnalisis(fallback);
-      dispatch({ type: 'COMPLETE_ONBOARDING', payload: { ...payload, analisisInicial: fallback } });
-    }
-    setLoading(false);
-  };
+    // Navegar YA al dashboard — no bloqueamos al usuario
+    dispatch({ type: 'COMPLETE_ONBOARDING', payload });
+    dispatch({ type: 'SET_TAB', payload: 'dashboard' });
 
-  const handleNext = async () => {
-    // NO guardamos datos parciales al estado global — solo al completar
-    if (step < totalSteps - 1) {
-      setStep(s => s + 1);
-    } else {
-      // Último paso: guardar todo y generar análisis
-      dispatch({ type: 'UPDATE_PROFILE', payload: form });
-      await generateAnalisis(form);
-    }
+    // Llamar a la IA en background con timeout de 8 segundos
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    const sys = `Eres un nutricionista y entrenador personal experto. Respondes siempre en español, con tono cálido, motivador y profesional. Usas emojis con moderación.`;
+    const msg = `Genera un Análisis Inicial Personalizado para ${form.nombre}, ${edad} años, ${form.sexo}.\nDatos: Peso ${form.peso}kg, Altura ${form.altura}cm, IMC ${imc}, Grasa ${form.porcGrasa || 'no indicada'}%\nObjetivo: bajar a ${form.pesoMeta}kg. TDEE: ${tdee} kcal, Déficit: ${deficit} kcal, Objetivo: ${objetivo} kcal.\nMacros: Proteína ${macros.proteina}g, Carbos ${macros.carbos}g, Grasa ${macros.grasa}g.\nIncluye: diagnóstico IMC, calorías objetivo, pérdida semanal realista, plan de macros, mensaje motivador.\nMáximo 250 palabras. Usa saltos de línea entre secciones.`;
+    callAI(sys, msg, null, 'image/jpeg', controller.signal)
+      .then(text => { clearTimeout(timer); dispatch({ type: 'UPDATE_PROFILE', payload: { analisisInicial: text } }); })
+      .catch(() => clearTimeout(timer)); // fallback ya guardado arriba
   };
-
-  // Pantalla post-análisis
-  if (analisis || loading) {
-    const p = state.profiles[state.perfil];
-    return (
-      <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16, minHeight: '100dvh' }}>
-        <div style={{ fontSize: 28, fontWeight: 800, textAlign: 'center' }}>✨ Tu Análisis</div>
-        {loading ? (
-          <div>
-            <div style={{ textAlign: 'center', marginBottom: 20, color: '#6366f1', fontWeight: 600 }}>
-              La IA está analizando tu perfil…
-            </div>
-            <AICard loading />
-            <div style={{ marginTop: 16 }}><Skeleton h={12} w="80%" /></div>
-            <div style={{ marginTop: 8 }}><Skeleton h={12} w="60%" /></div>
-          </div>
-        ) : (
-          <>
-            <AICard text={analisis} color="#10b981" />
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              {[
-                { icon: '🔥', label: 'Objetivo', value: `${p.calorias_objetivo} kcal` },
-                { icon: '📉', label: 'Déficit',  value: `−${p.deficit} kcal` },
-                { icon: '🥩', label: 'Proteína', value: `${p.macros?.proteina ?? 0}g` },
-                { icon: '⚡', label: 'Carbos',   value: `${p.macros?.carbos ?? 0}g` },
-              ].map(item => (
-                <div key={item.label} className="card" style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 24 }}>{item.icon}</div>
-                  <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>{item.label}</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: '#10b981', marginTop: 2 }}>{item.value}</div>
-                </div>
-              ))}
-            </div>
-            <button className="btn-primary" onClick={() => dispatch({ type: 'SET_TAB', payload: 'dashboard' })}>
-              ¡Empezar mi viaje! 🚀
-            </button>
-          </>
-        )}
-      </div>
-    );
-  }
 
   // IMC calculado en tiempo real
   const imcCalc = form.peso && form.altura ? calcIMC(Number(form.peso), Number(form.altura)) : '';
