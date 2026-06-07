@@ -301,31 +301,80 @@ const Dashboard = () => {
         )}
 
         {/* Suplementos (Yo) */}
-        {!isMama && (
-          <div className="card">
-            <div style={{ fontSize: 13, color: '#64748b', marginBottom: 8 }}>💊 Suplementos</div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => updateDayLog({ proteinaTomada: !dayLog.proteinaTomada })}
-                style={{
-                  flex: 1, padding: '6px 4px', borderRadius: 8,
-                  border: `1px solid ${dayLog.proteinaTomada ? '#10b981' : '#334155'}`,
-                  background: dayLog.proteinaTomada ? 'rgba(16,185,129,0.15)' : 'transparent',
-                  color: dayLog.proteinaTomada ? '#10b981' : '#64748b', cursor: 'pointer', fontSize: 12
-                }}>
-                🥤 {dayLog.proteinaTomada ? '✓' : ''}
-              </button>
-              <button onClick={() => updateDayLog({ creatinaTomada: !dayLog.creatinaTomada })}
-                style={{
-                  flex: 1, padding: '6px 4px', borderRadius: 8,
-                  border: `1px solid ${dayLog.creatinaTomada ? '#6366f1' : '#334155'}`,
-                  background: dayLog.creatinaTomada ? 'rgba(99,102,241,0.15)' : 'transparent',
-                  color: dayLog.creatinaTomada ? '#6366f1' : '#64748b', cursor: 'pointer', fontSize: 12
-                }}>
-                ⚡ {dayLog.creatinaTomada ? '✓' : ''}
-              </button>
+        {!isMama && (() => {
+          // Calcular racha y días del mes para cada suplemento
+          const calcSupStats = (field) => {
+            const logs = state.dayLogs[state.perfil];
+            const now = new Date();
+            const y = now.getFullYear();
+            const m = now.getMonth();
+            // Días del mes actual en que se tomó
+            let diasMes = 0;
+            for (let d = 1; d <= now.getDate(); d++) {
+              const k = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+              if (logs[k]?.[field]) diasMes++;
+            }
+            // Racha: días consecutivos hacia atrás incluyendo hoy
+            let racha = 0;
+            const cur = new Date();
+            for (let i = 0; i < 365; i++) {
+              const k = cur.toISOString().split('T')[0];
+              if (logs[k]?.[field]) { racha++; cur.setDate(cur.getDate() - 1); }
+              else break;
+            }
+            return { diasMes, racha };
+          };
+
+          const prot = calcSupStats('proteinaTomada');
+          const crea = calcSupStats('creatinaTomada');
+
+          const SupBadge = ({ racha, diasMes }) => (
+            <div style={{ display: 'flex', gap: 4, marginTop: 4, justifyContent: 'center' }}>
+              {racha > 0 && (
+                <span style={{ fontSize: 9, fontWeight: 700, background: 'rgba(245,158,11,0.2)', color: '#f59e0b', borderRadius: 6, padding: '2px 5px' }}>
+                  🔥{racha}d
+                </span>
+              )}
+              {diasMes > 0 && (
+                <span style={{ fontSize: 9, fontWeight: 700, background: 'rgba(99,102,241,0.2)', color: '#a5b4fc', borderRadius: 6, padding: '2px 5px' }}>
+                  📅{diasMes}/mes
+                </span>
+              )}
             </div>
-          </div>
-        )}
+          );
+
+          return (
+            <div className="card">
+              <div style={{ fontSize: 13, color: '#64748b', marginBottom: 8 }}>💊 Suplementos</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  <button onClick={() => updateDayLog({ proteinaTomada: !dayLog.proteinaTomada })}
+                    style={{
+                      flex: 1, padding: '6px 4px', borderRadius: 8,
+                      border: `1px solid ${dayLog.proteinaTomada ? '#10b981' : '#334155'}`,
+                      background: dayLog.proteinaTomada ? 'rgba(16,185,129,0.15)' : 'transparent',
+                      color: dayLog.proteinaTomada ? '#10b981' : '#64748b', cursor: 'pointer', fontSize: 12
+                    }}>
+                    🥤 {dayLog.proteinaTomada ? '✓' : ''}
+                  </button>
+                  <SupBadge racha={prot.racha} diasMes={prot.diasMes} />
+                </div>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  <button onClick={() => updateDayLog({ creatinaTomada: !dayLog.creatinaTomada })}
+                    style={{
+                      flex: 1, padding: '6px 4px', borderRadius: 8,
+                      border: `1px solid ${dayLog.creatinaTomada ? '#6366f1' : '#334155'}`,
+                      background: dayLog.creatinaTomada ? 'rgba(99,102,241,0.15)' : 'transparent',
+                      color: dayLog.creatinaTomada ? '#6366f1' : '#64748b', cursor: 'pointer', fontSize: 12
+                    }}>
+                    ⚡ {dayLog.creatinaTomada ? '✓' : ''}
+                  </button>
+                  <SupBadge racha={crea.racha} diasMes={crea.diasMes} />
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Tarjeta cintura (solo Mamá) */}

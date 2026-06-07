@@ -291,6 +291,15 @@ Analiza de forma personalizada y motivadora.`;
             const imc = calcIMC(Number(form.peso), Number(prof.altura));
             const cat = clasificarIMC(imc);
             const { color, bg } = getImcColor(imc);
+
+            // TMB (Tasa Metabólica Basal) — Mifflin-St Jeor
+            const edad = prof.fechaNacimiento ? Math.floor((Date.now() - new Date(prof.fechaNacimiento)) / (1000*60*60*24*365.25)) : (prof.edad || 0);
+            const p = Number(form.peso);
+            const a = Number(prof.altura);
+            const tmb = prof.sexo === 'mujer'
+              ? Math.round(10 * p + 6.25 * a - 5 * edad - 161)
+              : Math.round(10 * p + 6.25 * a - 5 * edad + 5);
+
             return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <div className="card" style={{ background: bg, padding: '10px 14px', border: `1px solid ${color}44` }}>
@@ -314,6 +323,21 @@ Analiza de forma personalizada y motivadora.`;
                     </div>
                   ))}
                 </div>
+                {/* TMB — Calorías en reposo */}
+                {tmb > 0 && (
+                  <div className="card" style={{ background: 'linear-gradient(135deg,rgba(99,102,241,0.1),rgba(16,185,129,0.05))', border: '1px solid rgba(99,102,241,0.25)', padding: '12px 14px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 2 }}>🔥 Calorías en reposo (TMB)</div>
+                        <div style={{ fontSize: 11, color: '#475569' }}>Solo por existir, sin moverse</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 26, fontWeight: 800, color: '#6366f1', lineHeight: 1 }}>{tmb}</div>
+                        <div style={{ fontSize: 11, color: '#64748b' }}>kcal/día</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })()}
