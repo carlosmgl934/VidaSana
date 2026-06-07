@@ -84,22 +84,15 @@ const Dashboard = () => {
     setLoadingInsight(true);
     if (abortRef.current) abortRef.current.abort();
     abortRef.current = new AbortController();
-    // Timeout de 8 segundos — si la IA no responde, usamos fallback local
-    const timer = setTimeout(() => abortRef.current?.abort(), 8000);
     const recentMeds = limitForPrompt(mediciones, 10);
     const sys = `Eres un coach de salud personal. Responde en español, de forma breve (máx 3 oraciones), motivadora y accionable. Usa un emoji al inicio.`;
     const msg = `Consejo diario para ${prof.nombre || 'el usuario'}: lleva ${streak} días activo, perdió ${perdido.toFixed(1)}kg de ${totalPerder.toFixed(1)}kg objetivo. Hoy: ${calHoy} de ${calObjetivo} kcal, ${aguaHoy} vasos agua.`;
     try {
       const text = await callAI(sys, msg, null, 'image/jpeg', abortRef.current.signal);
-      clearTimeout(timer);
       dispatch({ type: 'SET_AI_INSIGHT', payload: text });
     } catch (e) {
-      clearTimeout(timer);
       if (e.name !== 'AbortError') {
         dispatch({ type: 'SET_AI_INSIGHT', payload: `💡 Cada día cuenta en tu camino hacia el objetivo. ¡Sigue así, ${prof.nombre || ''}!` });
-      } else {
-        // Timeout o abort — poner fallback local inmediatamente
-        dispatch({ type: 'SET_AI_INSIGHT', payload: `💪 Llevas ${perdido.toFixed(1)} kg perdidos. ${calHoy < calObjetivo ? `Te quedan ${calObjetivo - calHoy} kcal para hoy.` : '¡Objetivo calórico alcanzado hoy!'} ¡Sigue así!` });
       }
     }
     setLoadingInsight(false);

@@ -267,21 +267,74 @@ const Calendario = () => {
             </div>
 
             {/* Suplementos — solo Yo */}
-            {!isMama && (
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ fontWeight: 600, marginBottom: 8 }}>💊 Suplementos</div>
-                <div style={{ display: 'flex', gap: 12 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                    <Toggle value={!!selLog.proteinaTomada} onChange={v => updateSelLog({ proteinaTomada: v })} />
-                    <span style={{ fontSize: 13 }}>🥤 Proteína</span>
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                    <Toggle value={!!selLog.creatinaTomada} onChange={v => updateSelLog({ creatinaTomada: v })} />
-                    <span style={{ fontSize: 13 }}>⚡ Creatina</span>
-                  </label>
+            {!isMama && (() => {
+              // Calcular racha y días del mes para cada suplemento
+              const calcSupStats = (field) => {
+                const logs = state.dayLogs[state.perfil];
+                const now = new Date();
+                const y = now.getFullYear();
+                const m = now.getMonth();
+                let diasMes = 0;
+                for (let d = 1; d <= now.getDate(); d++) {
+                  const k = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                  if (logs[k]?.[field]) diasMes++;
+                }
+                let racha = 0;
+                const cur = new Date();
+                for (let i = 0; i < 365; i++) {
+                  const k = cur.toISOString().split('T')[0];
+                  if (logs[k]?.[field]) { racha++; cur.setDate(cur.getDate() - 1); }
+                  else break;
+                }
+                return { diasMes, racha };
+              };
+              const prot = calcSupStats('proteinaTomada');
+              const crea = calcSupStats('creatinaTomada');
+
+              return (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontWeight: 600, marginBottom: 8 }}>💊 Suplementos</div>
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                        <Toggle value={!!selLog.proteinaTomada} onChange={v => updateSelLog({ proteinaTomada: v })} />
+                        <span style={{ fontSize: 13 }}>🥤 Proteína</span>
+                      </label>
+                      <div style={{ display: 'flex', gap: 4, marginLeft: 4 }}>
+                        {prot.racha > 0 && (
+                          <span style={{ fontSize: 9, fontWeight: 700, background: 'rgba(245,158,11,0.2)', color: '#f59e0b', borderRadius: 6, padding: '2px 5px' }}>
+                            🔥{prot.racha}d
+                          </span>
+                        )}
+                        {prot.diasMes > 0 && (
+                          <span style={{ fontSize: 9, fontWeight: 700, background: 'rgba(99,102,241,0.2)', color: '#a5b4fc', borderRadius: 6, padding: '2px 5px' }}>
+                            📅{prot.diasMes}/mes
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                        <Toggle value={!!selLog.creatinaTomada} onChange={v => updateSelLog({ creatinaTomada: v })} />
+                        <span style={{ fontSize: 13 }}>⚡ Creatina</span>
+                      </label>
+                      <div style={{ display: 'flex', gap: 4, marginLeft: 4 }}>
+                        {crea.racha > 0 && (
+                          <span style={{ fontSize: 9, fontWeight: 700, background: 'rgba(245,158,11,0.2)', color: '#f59e0b', borderRadius: 6, padding: '2px 5px' }}>
+                            🔥{crea.racha}d
+                          </span>
+                        )}
+                        {crea.diasMes > 0 && (
+                          <span style={{ fontSize: 9, fontWeight: 700, background: 'rgba(99,102,241,0.2)', color: '#a5b4fc', borderRadius: 6, padding: '2px 5px' }}>
+                            📅{crea.diasMes}/mes
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Agua */}
             <div style={{ marginBottom: 16 }}>
