@@ -221,73 +221,66 @@ const Cenas = () => {
       )}
 
       {/* Modal add/edit cena */}
-      {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <div style={{ fontSize: 18, fontWeight: 700 }}>{editCena ? 'Editar cena' : 'Nueva cena'}</div>
-              <button className="btn-icon" onClick={() => setShowModal(false)} style={{ fontSize: 16, padding: 8 }}>✕</button>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {/* Emoji */}
-              <div>
-                <label style={{ fontSize: 12, color: '#64748b', display: 'block', marginBottom: 6 }}>Emoji</label>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {EMOJIS.map(e => (
-                    <button key={e} type="button" onClick={() => setForm(f => ({ ...f, emoji: e }))} style={{
-                      fontSize: 22, padding: '8px', borderRadius: 8,
-                      border: `2px solid ${form.emoji === e ? '#10b981' : '#334155'}`,
-                      background: form.emoji === e ? 'rgba(16,185,129,0.1)' : '#0f172a', cursor: 'pointer'
-                    }}>{e}</button>
-                  ))}
-                </div>
-              </div>
-              {/* Nombre */}
-              <div>
-                <label style={{ fontSize: 12, color: '#64748b', display: 'block', marginBottom: 6 }}>Nombre *</label>
-                <input className="input-field" placeholder="ej: Tortilla de patatas ligera"
-                  value={form.nombre} maxLength={80}
-                  onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} />
-              </div>
-              {/* Descripción */}
-              <div>
-                <label style={{ fontSize: 12, color: '#64748b', display: 'block', marginBottom: 6 }}>Descripción</label>
-                <input className="input-field" placeholder="Descripción breve"
-                  value={form.descripcion} maxLength={200}
-                  onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))} />
-              </div>
-              {/* Calorías */}
-              <div>
-                <label style={{ fontSize: 12, color: '#64748b', display: 'block', marginBottom: 6 }}>Calorías aproximadas</label>
-                <input className="input-field" type="number" inputMode="numeric" placeholder="350"
-                  value={form.calorias} onChange={e => setForm(f => ({ ...f, calorias: e.target.value }))} />
-              </div>
-              {/* Veces máximo */}
-              <div>
-                <label style={{ fontSize: 12, color: '#64748b', display: 'block', marginBottom: 6 }}>
-                  Máximo veces/semana: {form.vecesMax}
-                </label>
-                <input type="range" min={1} max={7} value={form.vecesMax}
-                  onChange={e => setForm(f => ({ ...f, vecesMax: Number(e.target.value) }))}
-                  style={{ width: '100%', accentColor: '#10b981' }} />
-              </div>
-              {/* Tags */}
-              <div>
-                <label style={{ fontSize: 12, color: '#64748b', display: 'block', marginBottom: 8 }}>Tags</label>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {TAGS.map(t => (
-                    <button key={t} type="button" className={`tag-chip ${(form.tags || []).includes(t) ? 'selected' : ''}`}
-                      onClick={() => toggleTag(t)}>{t}</button>
-                  ))}
-                </div>
-              </div>
-              <button className="btn-primary" onClick={handleSave} disabled={!form.nombre?.trim()}>
-                💾 Guardar
-              </button>
+      {/* Modal add/edit cena */}
+      <Modal open={showModal} onClose={() => setShowModal(false)} title={editCena ? 'Editar cena' : 'Nueva cena'}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* Emoji */}
+          <div>
+            <label style={{ fontSize: 12, color: '#64748b', display: 'block', marginBottom: 6 }}>Emoji</label>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {EMOJIS.map(e => (
+                <button key={e} type="button" onClick={() => setForm(f => ({ ...f, emoji: e }))} style={{
+                  fontSize: 22, padding: '8px', borderRadius: 8,
+                  border: `2px solid ${form.emoji === e ? '#10b981' : '#334155'}`,
+                  background: form.emoji === e ? 'rgba(16,185,129,0.1)' : '#0f172a', cursor: 'pointer'
+                }}>{e}</button>
+              ))}
             </div>
           </div>
+          {/* Nombre */}
+          <div>
+            <label style={{ fontSize: 12, color: '#64748b', display: 'block', marginBottom: 6 }}>Nombre *</label>
+            <input className="input-field" placeholder="ej: Tortilla de patatas ligera"
+              value={form.nombre} maxLength={80}
+              onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} />
+          </div>
+          {/* Descripción */}
+          <div>
+            <label style={{ fontSize: 12, color: '#64748b', display: 'block', marginBottom: 6 }}>Descripción</label>
+            <input className="input-field" placeholder="Descripción breve"
+              value={form.descripcion} maxLength={200}
+              onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))} />
+          </div>
+          {/* Calorías */}
+          <div>
+            <label style={{ fontSize: 12, color: '#64748b', display: 'block', marginBottom: 6 }}>Calorías aproximadas</label>
+            <input className="input-field" type="number" inputMode="numeric" placeholder="350"
+              value={form.calorias} onChange={e => setForm(f => ({ ...f, calorias: e.target.value }))} />
+          </div>
+          {/* Veces máximo */}
+          <div>
+            <label style={{ fontSize: 12, color: '#64748b', display: 'block', marginBottom: 6 }}>
+              Máximo veces/semana: {form.vecesMax}
+            </label>
+            <input type="range" min={1} max={7} value={form.vecesMax}
+              onChange={e => setForm(f => ({ ...f, vecesMax: Number(e.target.value) }))}
+              style={{ width: '100%', accentColor: '#10b981' }} />
+          </div>
+          {/* Tags */}
+          <div>
+            <label style={{ fontSize: 12, color: '#64748b', display: 'block', marginBottom: 8 }}>Tags</label>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {TAGS.map(t => (
+                <button key={t} type="button" className={`tag-chip ${(form.tags || []).includes(t) ? 'selected' : ''}`}
+                  onClick={() => toggleTag(t)}>{t}</button>
+              ))}
+            </div>
+          </div>
+          <button className="btn-primary" onClick={handleSave} disabled={!form.nombre?.trim()}>
+            💾 Guardar
+          </button>
         </div>
-      )}
+      </Modal>
       <div style={{ height: 20 }} />
     </div>
   );

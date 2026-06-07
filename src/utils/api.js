@@ -10,8 +10,8 @@
 
 const GEMINI_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
 
-// gemini-2.0-flash: mejor visión, mejor razonamiento nutricional, capa gratuita
-const GEMINI_MODEL = 'gemini-2.0-flash';
+// gemini-1.5-flash: rápido, gratuito, CON visión
+const GEMINI_MODEL = 'gemini-1.5-flash';
 
 const GEMINI_URL = (key) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key}`;
