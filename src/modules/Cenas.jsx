@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { useApp } from '../context.jsx';
 import { today, WEEKDAY_NAMES } from '../utils/dates.js';
+import Modal from '../components/Modal.jsx';
 
 // Constantes fuera del componente
 const TAGS = ['proteica','ligera','vegetariana','rápida','italiana','mediterránea','casera','especial'];
